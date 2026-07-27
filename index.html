@@ -70,6 +70,16 @@
   .card.games p{color:rgba(243,241,231,0.8);}
   .card.games .go{color:var(--gold);}
 
+  .card.night{
+    background:linear-gradient(180deg,#10151d,#151b25);
+  }
+  .card.night .tag{
+    font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--bg);background:var(--gold);
+    padding:3px 8px;border-radius:4px;font-weight:700;
+  }
+  .card.night p{color:var(--text-dim);}
+  .card.night .go{color:var(--gold);}
+
   footer{margin-top:48px;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--text-dim);}
 </style>
 </head>
@@ -92,6 +102,13 @@
         <h2>Boardgame Showdown</h2>
         <p>Vote head-to-head on your favorite games and see the live, shared leaderboard.</p>
         <span class="go">Start voting →</span>
+      </a>
+
+      <a class="card night" href="/gamenight">
+        <span class="tag">rsvp</span>
+        <h2>Game Night Sign-Up</h2>
+        <p>RSVP to upcoming boardgame days/nights and suggest what to play.</p>
+        <span class="go">See what's on →</span>
       </a>
     </div>
 

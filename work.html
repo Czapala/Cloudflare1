@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Work History — czapala.com</title>
+<meta name="description" content="David Czapala's work history, education, certifications, and systems experience.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a1729;
+    --panel:#0f2138;
+    --panel-2:#14283f;
+    --line:rgba(120,170,220,0.14);
+    --card-edge:rgba(120,170,220,0.28);
+    --text:#e7eef7;
+    --text-dim:#7590ab;
+    --accent:#4f8fdb;
+    --accent-bright:#8fd0ff;
+    --font-mono:'JetBrains Mono',monospace;
+    --font-body:'Inter',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;min-height:100vh;background:var(--bg);color:var(--text);
+    font-family:var(--font-body);
+    background-image:
+      linear-gradient(rgba(120,170,220,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120,170,220,0.05) 1px, transparent 1px);
+    background-size:36px 36px;
+  }
+  .wrap{max-width:820px;margin:0 auto;padding:28px 20px 80px;}
+
+  .topbar{padding:0 0 10px;}
+  .home-link{
+    display:inline-flex;align-items:center;gap:6px;
+    font-family:var(--font-body);font-weight:600;font-size:13px;
+    color:var(--text-dim);text-decoration:none;
+    padding:7px 14px;border-radius:999px;border:1px solid var(--line);
+    background:rgba(255,255,255,0.02);transition:color .15s, border-color .15s, background .15s;
+  }
+  .home-link:hover{color:var(--accent-bright);border-color:var(--accent-bright);background:rgba(120,170,220,0.08);}
+
+  header.top{text-align:center;margin:20px 0 8px;}
+  .eyebrow-top{
+    font-family:var(--font-mono);font-size:12px;color:var(--accent-bright);
+    letter-spacing:0.18em;text-transform:uppercase;margin-bottom:10px;
+  }
+  h1{font-size:clamp(26px,5vw,38px);margin:0 0 10px;color:#fff;letter-spacing:-0.01em;font-family:var(--font-mono);font-weight:800;}
+  .sub{color:var(--text-dim);font-size:14.5px;max-width:480px;margin:0 auto;}
+
+  section.block{margin-top:52px;}
+  .block-head{display:flex;align-items:baseline;gap:12px;margin-bottom:18px;}
+  .block-num{
+    font-family:var(--font-mono);font-size:12px;color:var(--accent-bright);
+    letter-spacing:0.1em;
+  }
+  .block-head h2{
+    font-family:var(--font-mono);font-size:14px;letter-spacing:0.08em;text-transform:uppercase;
+    color:var(--text-dim);margin:0;
+  }
+
+  /* ---- experience ---- */
+  .org-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:20px 22px;margin-bottom:16px;
+  }
+  .org-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:4px;}
+  .org-name{font-family:var(--font-mono);font-weight:700;font-size:16.5px;color:#fff;}
+  .org-span{font-family:var(--font-mono);font-size:12px;color:var(--text-dim);}
+
+  .role-list{margin-top:14px;}
+  .role-item{
+    position:relative;padding-left:20px;padding-bottom:14px;
+    border-left:2px solid var(--line);
+  }
+  .role-item:last-child{padding-bottom:0;}
+  .role-item::before{
+    content:"";position:absolute;left:-6px;top:3px;width:10px;height:10px;
+    background:var(--bg);border:2px solid var(--accent);border-radius:2px;transform:rotate(45deg);
+  }
+  .role-item:first-child::before{background:var(--accent-bright);border-color:var(--accent-bright);box-shadow:0 0 10px rgba(143,208,255,0.5);}
+  .role-title{font-size:15px;font-weight:600;color:var(--text);}
+  .role-dates{font-family:var(--font-mono);font-size:12px;color:var(--text-dim);margin-top:3px;}
+
+  /* single-role org: no rail needed */
+  .org-card.single .role-item{border-left:none;padding-left:0;}
+  .org-card.single .role-item::before{display:none;}
+
+  /* ---- education ---- */
+  .edu-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:20px 22px;margin-bottom:16px;
+  }
+  .edu-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;}
+  .edu-school{font-family:var(--font-mono);font-weight:700;font-size:15.5px;color:#fff;}
+  .edu-date{font-family:var(--font-mono);font-size:12px;color:var(--text-dim);white-space:nowrap;}
+  .edu-degree{font-size:14.5px;color:var(--text);margin-top:6px;}
+  .edu-notes{margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;}
+  .edu-note{
+    font-family:var(--font-mono);font-size:11px;color:var(--accent-bright);
+    border:1px solid var(--card-edge);padding:4px 10px;border-radius:3px;
+  }
+
+  /* ---- certifications ---- */
+  .cert-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media (max-width:560px){.cert-grid{grid-template-columns:1fr;}}
+  .cert-chip{
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px;
+  }
+  .cert-name{font-size:14px;color:var(--text);}
+  .cert-status{
+    font-family:var(--font-mono);font-size:10.5px;letter-spacing:0.05em;text-transform:uppercase;
+    padding:4px 9px;border-radius:999px;white-space:nowrap;flex-shrink:0;
+  }
+  .cert-status.current{color:var(--accent-bright);border:1px solid var(--accent-bright);background:rgba(143,208,255,0.08);}
+  .cert-status.expired{color:var(--text-dim);border:1px solid var(--line);}
+  .cert-status.expired:empty{display:none;padding:0;border:none;}
+
+  /* ---- systems ---- */
+  .sys-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media (max-width:560px){.sys-grid{grid-template-columns:1fr;}}
+  .sys-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;
+  }
+  .sys-cat{
+    font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;
+    color:var(--text-dim);margin-bottom:12px;
+  }
+  .sys-tags{display:flex;flex-wrap:wrap;gap:8px;}
+  .sys-tag{
+    font-family:var(--font-mono);font-size:11.5px;color:var(--accent-bright);
+    border:1px solid var(--card-edge);padding:5px 11px;border-radius:3px;
+  }
+
+  .ai-ask{
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:20px 22px;display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:space-between;
+  }
+  .ai-ask-copy p{margin:0;font-size:13.5px;color:var(--text-dim);max-width:360px;line-height:1.55;}
+  .ai-ask-buttons{display:flex;flex-wrap:wrap;gap:9px;}
+  .ai-btn{
+    font-family:var(--font-mono);font-size:12px;color:var(--accent-bright);
+    text-decoration:none;border:1px solid var(--card-edge);
+    padding:8px 15px;border-radius:999px;transition:border-color .15s, background .15s;
+  }
+  .ai-btn:hover{background:rgba(120,170,220,0.1);border-color:var(--accent-bright);}
+  @media (max-width:560px){.ai-ask{flex-direction:column;align-items:flex-start;}}
+
+  footer.pagefoot{text-align:center;margin-top:56px;font-size:12px;color:var(--text-dim);opacity:0.7;}
+  footer.pagefoot a{color:var(--accent-bright);text-decoration:none;border-bottom:1px solid rgba(143,208,255,0.3);padding-bottom:1px;opacity:1;}
+  footer.pagefoot a:hover{border-color:var(--accent-bright);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <a class="home-link" href="/">← Home</a>
+  </div>
+
+  <header class="top">
+    <div class="eyebrow-top">czapala.com / work</div>
+    <h1>Work History</h1>
+    <p class="sub">Three decades in IT, one role at a time — plus education, certifications, and the systems along the way. What will the next decade look like!</p>
+  </header>
+
+  <section class="block" id="experience">
+    <div class="block-head">
+      <span class="block-num">01</span>
+      <h2>Experience</h2>
+    </div>
+
+    <div class="org-card single">
+      <div class="org-head">
+        <span class="org-name">CRU</span>
+        <span class="org-span">Aug 2016 – Present</span>
+      </div>
+      <div class="role-list">
+        <div class="role-item">
+          <div class="role-title">IT Administrator</div>
+          <div class="role-dates">Aug 2016 – Present</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="org-card single">
+      <div class="org-head">
+        <span class="org-name">Cerner</span>
+        <span class="org-span">Sept 2014 – Feb 2016</span>
+      </div>
+      <div class="role-list">
+        <div class="role-item">
+          <div class="role-title">Information Systems Specialist</div>
+          <div class="role-dates">Sept 2014 – Feb 2016</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="org-card single">
+      <div class="org-head">
+        <span class="org-name">Georgia Regents University</span>
+        <span class="org-span">May 2013 – Sept 2014</span>
+      </div>
+      <div class="role-list">
+        <div class="role-item">
+          <div class="role-title">Systems Support Specialist I</div>
+          <div class="role-dates">May 2013 – Sept 2014</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="org-card">
+      <div class="org-head">
+        <span class="org-name">Augusta State University</span>
+        <span class="org-span">Aug 1995 – May 2013 · 4 roles</span>
+      </div>
+      <div class="role-list">
+        <div class="role-item">
+          <div class="role-title">Network Specialist I</div>
+          <div class="role-dates">Aug 2011 – May 2013</div>
+        </div>
+        <div class="role-item">
+          <div class="role-title">Client Support Specialist III – Tech Shop Manager</div>
+          <div class="role-dates">May 2003 – Aug 2011</div>
+        </div>
+        <div class="role-item">
+          <div class="role-title">Tech Support II</div>
+          <div class="role-dates">Jun 1997 – May 2003</div>
+        </div>
+        <div class="role-item">
+          <div class="role-title">Tech Support I</div>
+          <div class="role-dates">Aug 1995 – Jun 1997</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="education">
+    <div class="block-head">
+      <span class="block-num">02</span>
+      <h2>Education</h2>
+    </div>
+
+    <div class="edu-card">
+      <div class="edu-head">
+        <span class="edu-school">Augusta State University — James M. Hull College of Business</span>
+        <span class="edu-date">May 2013</span>
+      </div>
+      <div class="edu-degree">Bachelor of Business Administration in Management of Information Systems</div>
+      <div class="edu-notes">
+        <span class="edu-note">Graduated in the 93rd percentile</span>
+        <span class="edu-note">Academic Excellence in MIS program</span>
+      </div>
+    </div>
+
+    <div class="edu-card">
+      <div class="edu-head">
+        <span class="edu-school">Aiken Technical College</span>
+        <span class="edu-date">June 1995</span>
+      </div>
+      <div class="edu-degree">Associate's Degree in Computer Science</div>
+      <div class="edu-notes">
+        <span class="edu-note">Graduated with Honors</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="certifications">
+    <div class="block-head">
+      <span class="block-num">03</span>
+      <h2>Certifications</h2>
+    </div>
+    <div class="cert-grid">
+      <div class="cert-chip">
+        <span class="cert-name">Salesforce Certified Administrator</span>
+        <span class="cert-status current">Current</span>
+      </div>
+      <div class="cert-chip">
+        <span class="cert-name">Red Hat Certified System Administrator (RHCSA)</span>
+        <span class="cert-status expired"></span>
+      </div>
+      <div class="cert-chip">
+        <span class="cert-name">Certified Ethical Hacker (CEH v8)</span>
+        <span class="cert-status expired"></span>
+      </div>
+      <div class="cert-chip">
+        <span class="cert-name">Certified Penetration Tester (CPT)</span>
+        <span class="cert-status expired"></span>
+      </div>
+      <div class="cert-chip">
+        <span class="cert-name">Security+</span>
+        <span class="cert-status expired"></span>
+      </div>
+      <div class="cert-chip">
+        <span class="cert-name">LPIC-1 Junior Level Linux</span>
+        <span class="cert-status expired"></span>
+      </div>
+      <div class="cert-chip">
+        <span class="cert-name">VMware Certified Professional (VCP5)</span>
+        <span class="cert-status expired"></span>
+      </div>
+      <div class="cert-chip">
+        <span class="cert-name">Network+</span>
+        <span class="cert-status expired"></span>
+      </div>
+      <div class="cert-chip">
+        <span class="cert-name">A+</span>
+        <span class="cert-status expired"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="systems">
+    <div class="block-head">
+      <span class="block-num">04</span>
+      <h2>Systems I've Helped Manage</h2>
+    </div>
+    <div class="sys-grid">
+      <div class="sys-card">
+        <div class="sys-cat">Operating Systems</div>
+        <div class="sys-tags">
+          <span class="sys-tag">Windows</span>
+          <span class="sys-tag">Mac</span>
+          <span class="sys-tag">Linux</span>
+        </div>
+      </div>
+      <div class="sys-card">
+        <div class="sys-cat">Identity &amp; Directory Services</div>
+        <div class="sys-tags">
+          <span class="sys-tag">Active Directory</span>
+          <span class="sys-tag">NetIQ Identity Manager</span>
+          <span class="sys-tag">Novell eDirectory 8.8</span>
+        </div>
+      </div>
+      <div class="sys-card">
+        <div class="sys-cat">Automation</div>
+        <div class="sys-tags">
+          <span class="sys-tag">PowerShell</span>
+          <span class="sys-tag">Salesforce Flow</span>
+        </div>
+      </div>
+      <div class="sys-card">
+        <div class="sys-cat">Programming Languages</div>
+        <div class="sys-tags">
+          <span class="sys-tag">C++</span>
+          <span class="sys-tag">C#</span>
+          <span class="sys-tag">Python</span>
+          <span class="sys-tag">Turbo Pascal</span>
+        </div>
+      </div>
+      <div class="sys-card">
+        <div class="sys-cat">Policy &amp; Patch Management</div>
+        <div class="sys-tags">
+          <span class="sys-tag">Group Policy</span>
+          <span class="sys-tag">WSUS</span>
+        </div>
+      </div>
+      <div class="sys-card">
+        <div class="sys-cat">Business Systems</div>
+        <div class="sys-tags">
+          <span class="sys-tag">Salesforce</span>
+          <span class="sys-tag">BMC Remedy AR Administration</span>
+        </div>
+      </div>
+      <div class="sys-card">
+        <div class="sys-cat">Endpoint Management</div>
+        <div class="sys-tags">
+          <span class="sys-tag">Ghost Solutions Suite</span>
+          <span class="sys-tag">Deep Freeze</span>
+          <span class="sys-tag">Windows SteadyState</span>
+          <span class="sys-tag">Shavlik Protect</span>
+        </div>
+      </div>
+      <div class="sys-card">
+        <div class="sys-cat">Virtualization &amp; Backup</div>
+        <div class="sys-tags">
+          <span class="sys-tag">VMware</span>
+          <span class="sys-tag">Backup Exec 2010</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="ask-ai">
+    <div class="block-head">
+      <span class="block-num">05</span>
+      <h2>Ask an AI</h2>
+    </div>
+    <div class="ai-ask">
+      <div class="ai-ask-copy">
+        <p>Open an AI assistant with a ready-made prompt about who I am, what I do, and how to get in touch.</p>
+      </div>
+      <div class="ai-ask-buttons">
+        <a class="ai-btn" href="https://chatgpt.com/?q=Tell%20me%20about%20David%20Czapala%20based%20on%20Czapala.com%20and%20summarize%20who%20they%20are%2C%20what%20they%20do%2C%20and%20how%20to%20get%20in%20touch." target="_blank" rel="noopener">ChatGPT</a>
+        <a class="ai-btn" href="https://www.perplexity.ai/search?q=Tell%20me%20about%20David%20Czapala%20based%20on%20Czapala.com%20and%20summarize%20who%20they%20are%2C%20what%20they%20do%2C%20and%20how%20to%20get%20in%20touch." target="_blank" rel="noopener">Perplexity</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="pagefoot">Thirty years of keeping systems running — this is the trail. · <a href="mailto:david@czapala.com">david@czapala.com</a></footer>
+</div>
+</body>
+</html>

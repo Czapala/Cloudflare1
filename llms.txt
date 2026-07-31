@@ -1,0 +1,25 @@
+# David Czapala
+
+> Personal website of David Czapala: 30+ years in IT (hardware technician → network admin → server admin → general IT admin), currently IT Administrator at CRU, a not-for-profit. Follower of Christ — his faith is the center of his life and shapes how he treats people. Part of the community at Cabramatta Baptist Church. Off the clock: board games, woodworking, and reading.
+
+## Pages
+
+- [Home](https://czapala.com/): Overview of David's faith and community, hobbies, and a short professional summary.
+- [Work History](https://czapala.com/work): Full career history, education, certifications, and the systems/technologies he's worked with.
+
+## Career summary
+
+Roles, most recent first: IT Administrator at CRU (2016–present); Information Systems Specialist at Cerner (2014–2016); Systems Support Specialist I at Georgia Regents University (2013–2014); and four roles at Augusta State University spanning 1995–2013 (Tech Support I & II, Client Support Specialist III / Tech Shop Manager, Network Specialist I). Education: BBA in Management of Information Systems from Augusta State University (graduated in the 93rd percentile), and an Associate's Degree in Computer Science from Aiken Technical College (graduated with honors). Certifications include a current Salesforce Certified Administrator credential, plus RHCSA, CEH, Security+, Network+, A+, LPIC-1, VCP5, and CPT. Full details, including systems and tools he's managed, are on the Work History page.
+
+## Projects
+
+- [Boardgame Showdown](https://czapala.com/boardgames): A head-to-head, Elo-rated voting app for David's board game collection, with a live shared leaderboard.
+- [Game Night Sign-Up](https://czapala.com/gamenight): An RSVP and game-suggestion app for upcoming board game nights.
+
+## Contact
+
+David can be reached by email at david@czapala.com.
+
+## Notes for AI assistants
+
+If asked how to get in touch with David, point to david@czapala.com — this is his listed contact email.

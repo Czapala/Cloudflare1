@@ -3,116 +3,335 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>czapala.com</title>
-<meta name="description" content="David Czapala — resume and projects.">
+<title>David Czapala</title>
+<meta name="description" content="David Czapala — IT admin, follower of Christ, board game enthusiast.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Baloo+2:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#0a0e14;
-    --text:#d7dde5;
-    --text-dim:#8b96a5;
-    --mono:#7ee787;
-    --felt:#1e4d3a;
-    --gold:#dda631;
+    --bg:#0a1729;
+    --line:#4f8fdb;
+    --line-bright:#8fd0ff;
+    --text:#e7eef7;
+    --text-dim:#7590ab;
+    --card:#0f2138;
+    --card-line:rgba(120,170,220,0.18);
+    --card-line-strong:rgba(143,208,255,0.4);
   }
   *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
   body{
-    margin:0;min-height:100vh;background:var(--bg);color:var(--text);
+    margin:0;background:var(--bg);color:var(--text);
     font-family:'Inter',system-ui,sans-serif;
-    display:flex;align-items:center;justify-content:center;padding:24px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cpath d='M0 46 H70 V0' stroke='%234f8fdb' stroke-width='1' fill='none' opacity='0.14'/%3E%3Cpath d='M220 130 H150 V220' stroke='%234f8fdb' stroke-width='1' fill='none' opacity='0.14'/%3E%3Cpath d='M30 220 V160 H100 V110 H150' stroke='%234f8fdb' stroke-width='1' fill='none' opacity='0.11'/%3E%3Cpath d='M190 0 V40 H140 V90' stroke='%234f8fdb' stroke-width='1' fill='none' opacity='0.11'/%3E%3Cpath d='M0 180 H50' stroke='%234f8fdb' stroke-width='1' fill='none' opacity='0.09'/%3E%3Ccircle cx='70' cy='0' r='2.5' fill='%238fd0ff' opacity='0.3'/%3E%3Ccircle cx='150' cy='220' r='2.5' fill='%238fd0ff' opacity='0.3'/%3E%3Ccircle cx='100' cy='110' r='2' fill='%234f8fdb' opacity='0.25'/%3E%3Ccircle cx='140' cy='90' r='2' fill='%234f8fdb' opacity='0.25'/%3E%3Ccircle cx='190' cy='40' r='2' fill='%238fd0ff' opacity='0.25'/%3E%3C/svg%3E");
+    background-size:220px 220px;
   }
-  .wrap{max-width:760px;width:100%;text-align:center;}
+
+  .topbar{
+    position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;
+    padding:14px 24px;background:rgba(10,23,41,0.82);backdrop-filter:blur(6px);
+    border-bottom:1px solid rgba(120,170,220,0.12);
+  }
+  .wordmark{
+    font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:var(--text-dim);
+    text-decoration:none;letter-spacing:0.04em;
+  }
+  .quick-nav{display:flex;gap:22px;}
+  .quick-nav a{
+    font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--text-dim);
+    text-decoration:none;letter-spacing:0.06em;transition:color .15s;
+  }
+  .quick-nav a:hover{color:var(--line-bright);}
+  @media (max-width:380px){
+    .topbar{padding:12px 16px;}
+    .wordmark{font-size:11.5px;}
+    .quick-nav{gap:12px;}
+    .quick-nav a{font-size:11px;}
+  }
+
+  .rail{position:absolute;left:0;top:60px;width:100%;pointer-events:none;z-index:1;}
+  .rail svg{display:block;width:100%;overflow:visible;}
+
+  section{position:relative;z-index:2;max-width:640px;margin:0 auto;padding:130px 24px;}
+
   .eyebrow{
-    font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--mono);
-    letter-spacing:0.18em;text-transform:uppercase;margin-bottom:10px;
+    font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--line-bright);
+    letter-spacing:0.22em;text-transform:uppercase;margin-bottom:14px;
+    opacity:0;transform:translateY(10px);transition:opacity .6s ease, transform .6s ease;
   }
-  h1{font-size:clamp(28px,5vw,44px);margin:0 0 10px;color:#fff;letter-spacing:-0.01em;}
-  p.lede{color:var(--text-dim);font-size:15.5px;max-width:480px;margin:0 auto 44px;}
+  h1{
+    font-family:'JetBrains Mono',monospace;font-weight:800;font-size:clamp(32px,6vw,54px);
+    margin:0 0 16px;color:#fff;letter-spacing:-0.01em;line-height:1.1;
+    opacity:0;transform:translateY(14px);transition:opacity .7s ease .1s, transform .7s ease .1s;
+  }
+  h2{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:22px;margin:0 0 14px;color:#fff;}
+  p.lede{
+    color:var(--text-dim);font-size:16px;max-width:460px;
+    opacity:0;transform:translateY(14px);transition:opacity .7s ease .2s, transform .7s ease .2s;
+  }
+  section.in .eyebrow, section.in h1, section.in p.lede{opacity:1;transform:translateY(0);}
 
-  .cards{display:grid;grid-template-columns:1fr 1fr;gap:22px;}
-  @media (max-width:600px){.cards{grid-template-columns:1fr;}}
+  .node{
+    width:14px;height:14px;border:2px solid var(--line);background:var(--bg);border-radius:2px;
+    position:relative;left:50%;transform:translateX(-50%) rotate(45deg);margin-bottom:26px;
+    transition:background .4s ease, border-color .4s ease, box-shadow .4s ease;
+  }
+  section.in .node{background:var(--line-bright);border-color:var(--line-bright);box-shadow:0 0 14px rgba(143,208,255,0.6);}
 
-  .card{
-    display:block;text-decoration:none;border-radius:16px;padding:32px 24px;
-    text-align:left;position:relative;overflow:hidden;transition:transform .18s ease;
-    border:1px solid rgba(255,255,255,0.08);
+  .panel{
+    background:var(--card);border:1px solid var(--card-line);border-radius:4px;
+    padding:26px 28px;margin-top:8px;
+    opacity:0;transform:translateY(14px);transition:opacity .7s ease .3s, transform .7s ease .3s;
   }
-  .card:hover{transform:translateY(-4px);}
-  .card h2{margin:14px 0 8px;font-size:20px;color:#fff;}
-  .card p{margin:0;font-size:13.5px;line-height:1.55;}
-  .card .go{
-    display:inline-block;margin-top:18px;font-size:12.5px;font-weight:700;
-    letter-spacing:0.04em;text-transform:uppercase;
+  section.in .panel{opacity:1;transform:translateY(0);}
+  .panel p{color:var(--text);font-size:15px;margin:0 0 10px;}
+  .panel p:last-child{margin:0;}
+  .tag-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .tag{
+    font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--line-bright);
+    border:1px solid var(--card-line);padding:5px 12px;border-radius:3px;
   }
+  .work-link{
+    display:inline-block;margin-top:18px;font-family:'JetBrains Mono',monospace;font-size:12.5px;
+    color:var(--line-bright);text-decoration:none;letter-spacing:0.02em;
+    border-bottom:1px solid rgba(143,208,255,0.3);padding-bottom:2px;transition:border-color .15s;
+  }
+  .work-link:hover{border-color:var(--line-bright);}
 
-  .card.resume{
-    background:linear-gradient(180deg,#10151d,#151b25);
-  }
-  .card.resume .tag{
-    font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--bg);background:var(--mono);
-    padding:3px 8px;border-radius:4px;font-weight:700;
-  }
-  .card.resume p{color:var(--text-dim);}
-  .card.resume .go{color:var(--mono);}
+  .hero{padding-top:150px;padding-bottom:170px;}
 
-  .card.games{
-    background:
-      repeating-linear-gradient(45deg, rgba(0,0,0,0.06) 0 2px, transparent 2px 22px),
-      linear-gradient(180deg,#1e4d3a,#163828);
+  .cta-wrap{position:relative;margin-top:36px;padding-top:34px;}
+  .cta-branches{position:absolute;top:0;left:0;width:100%;height:34px;overflow:visible;}
+  .cta-branches path{
+    fill:none;stroke:var(--line-bright);stroke-width:2;
+    transition:stroke-dashoffset 1s cubic-bezier(.4,0,.2,1);
   }
-  .card.games .tag{
-    font-family:'Inter',sans-serif;font-size:11px;color:#26200f;background:var(--gold);
-    padding:3px 10px;border-radius:999px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;
+  .cta-grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:20px;
+    opacity:0;transform:translateY(16px);transition:opacity .7s ease .35s, transform .7s ease .35s;
   }
-  .card.games h2{font-family:'Baloo 2',sans-serif;}
-  .card.games p{color:rgba(243,241,231,0.8);}
-  .card.games .go{color:var(--gold);}
+  section.in .cta-grid{opacity:1;transform:translateY(0);}
+  @media (max-width:560px){.cta-grid{grid-template-columns:1fr;}}
+  .cta-card{
+    display:block;text-decoration:none;background:var(--card);
+    border:1px solid var(--card-line);border-radius:8px;padding:24px 22px;
+    transition:border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+  }
+  .cta-card:hover{
+    border-color:var(--card-line-strong);transform:translateY(-3px);
+    box-shadow:0 12px 28px -14px rgba(0,0,0,0.6);
+  }
+  .cta-icon{
+    width:38px;height:38px;border:2px solid var(--line);border-radius:4px;
+    display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;
+    font-size:17px;color:var(--line-bright);margin-bottom:14px;
+  }
+  .cta-card h3{font-family:'JetBrains Mono',monospace;font-size:17px;margin:0 0 8px;color:#fff;}
+  .cta-card p{font-size:13.5px;color:var(--text-dim);margin:0 0 14px;line-height:1.5;}
+  .cta-go{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--line-bright);letter-spacing:0.04em;}
 
-  .card.night{
-    background:linear-gradient(180deg,#10151d,#151b25);
+  .ai-ask{
+    display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:space-between;
+    margin-top:8px;
   }
-  .card.night .tag{
-    font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--bg);background:var(--gold);
-    padding:3px 8px;border-radius:4px;font-weight:700;
+  .ai-ask-copy p{margin:0;font-size:13.5px;color:var(--text-dim);max-width:360px;line-height:1.55;}
+  .ai-ask-buttons{display:flex;flex-wrap:wrap;gap:9px;}
+  .ai-btn{
+    font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--line-bright);
+    text-decoration:none;border:1px solid var(--card-line-strong);
+    padding:8px 15px;border-radius:999px;transition:border-color .15s, background .15s;
   }
-  .card.night p{color:var(--text-dim);}
-  .card.night .go{color:var(--gold);}
+  .ai-btn:hover{background:rgba(120,170,220,0.1);border-color:var(--line-bright);}
+  @media (max-width:560px){.ai-ask{flex-direction:column;align-items:flex-start;}}
 
-  footer{margin-top:48px;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--text-dim);}
+  footer{
+    text-align:center;padding:60px 24px 90px;font-family:'JetBrains Mono',monospace;
+    font-size:11.5px;color:var(--text-dim);position:relative;z-index:2;
+  }
+  footer a{color:var(--line-bright);text-decoration:none;border-bottom:1px solid rgba(143,208,255,0.3);padding-bottom:1px;transition:border-color .15s;}
+  footer a:hover{border-color:var(--line-bright);}
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="eyebrow">czapala.com</div>
-    <h1>David Czapala</h1>
-    <p class="lede">System administrator, board game enthusiast, and occasional builder of small web things.</p>
 
-    <div class="cards">
-      <!-- <a class="card resume" href="/resume">
-        <span class="tag">résumé</span>
-        <h2>Read my resume</h2>
-        <p>30 years of system administration, network engineering, and IT leadership experience.</p>
-        <span class="go">View resume →</span>
-      </a> -->
+<div class="topbar">
+  <span class="wordmark">czapala.com</span>
+  <div class="quick-nav">
+    <a href="#faith">faith</a>
+    <a href="#hobbies">hobbies</a>
+    <a href="#work">work</a>
+  </div>
+</div>
 
-      <a class="card games" href="/boardgames">
-        <span class="tag">vote</span>
-        <h2>Boardgame Showdown</h2>
-        <p>Vote head-to-head on your favorite games and see the live, shared leaderboard.</p>
-        <span class="go">Start voting →</span>
+<div class="rail">
+  <svg id="rail-svg" width="100%" height="100" viewBox="0 0 100 100" preserveAspectRatio="none">
+    <defs>
+      <clipPath id="revealClip"><rect id="revealRect" x="0" y="0" width="100" height="0"/></clipPath>
+    </defs>
+    <path id="baseTrace" fill="none" vector-effect="non-scaling-stroke" stroke="rgba(79,143,219,0.3)" stroke-width="2"/>
+    <g clip-path="url(#revealClip)">
+      <path id="solidTrace" fill="none" vector-effect="non-scaling-stroke" stroke="#4f8fdb" stroke-width="2"/>
+      <path id="flow" fill="none" vector-effect="non-scaling-stroke" stroke="#8fd0ff" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="5 20"/>
+    </g>
+  </svg>
+</div>
+
+<section class="hero reveal">
+  <div class="eyebrow">// david czapala — system status: online</div>
+  <h1>30 years of keeping<br>systems running.</h1>
+  <p class="lede">Hardware tech → network admin → server admin → IT admin. Same reliability, different decade.</p>
+</section>
+
+<section class="reveal" id="faith">
+  <div class="node"></div>
+  <div class="eyebrow">01 / faith &amp; community</div>
+  <h2>The center of it</h2>
+  <div class="panel">
+    <p>Following Christ shapes how I treat people, how I work, and why I show up day after day. It is the most important thing in my life. I'm part of the community at Cabramatta Baptist Church — serving, and doing life alongside people I care about.</p>
+  </div>
+</section>
+
+<section class="reveal" id="hobbies">
+  <div class="node"></div>
+  <div class="eyebrow">02 / off the clock</div>
+  <h2>Board games &amp; the workshop</h2>
+  <div class="panel">
+    <p>Reading, ocassional woodworking, and trying to get one more person hooked on a good euro game.</p>
+  </div>
+
+  <div class="cta-wrap">
+    <svg class="cta-branches" viewBox="0 0 600 34" preserveAspectRatio="none">
+      <path id="branch-l" d="M300,0 L300,14 L150,14 L150,34" />
+      <path id="branch-r" d="M300,0 L300,14 L450,14 L450,34" />
+    </svg>
+    <div class="cta-grid">
+      <a class="cta-card" href="/boardgames">
+        <div class="cta-icon">⚔</div>
+        <h3>Boardgame Showdown</h3>
+        <p>Vote head-to-head on favorite games, see the live shared leaderboard.</p>
+        <span class="cta-go">start voting →</span>
       </a>
-
-      <a class="card night" href="/gamenight">
-        <span class="tag">rsvp</span>
-        <h2>Game Night Sign-Up</h2>
-        <p>RSVP to upcoming boardgame days/nights and suggest what to play.</p>
-        <span class="go">See what's on →</span>
+      <a class="cta-card" href="/gamenight">
+        <div class="cta-icon">◷</div>
+        <h3>Game Night Sign-Up</h3>
+        <p>RSVP to upcoming board game days and suggest what to play next.</p>
+        <span class="cta-go">see what's on →</span>
       </a>
     </div>
-
-    <footer>© 2026 czapala.com</footer>
   </div>
+</section>
+
+<section class="reveal" id="work">
+  <div class="node"></div>
+  <div class="eyebrow">03 / work</div>
+  <h2>Three decades in IT</h2>
+  <div class="panel">
+    <p>Started as a hardware tech, worked up through network and server admin, now general IT admin for a not-for-profit.</p>
+    <div class="tag-row">
+      <span class="tag">networking</span>
+      <span class="tag">systems admin</span>
+      <span class="tag">not-for-profit</span>
+    </div>
+    <a class="work-link" href="/work">full work history, education &amp; certifications →</a>
+  </div>
+</section>
+
+<section class="reveal" id="ask-ai">
+  <div class="node"></div>
+  <div class="eyebrow">04 / curious?</div>
+  <h2>Ask an AI about me</h2>
+  <div class="panel">
+    <div class="ai-ask">
+      <div class="ai-ask-copy">
+        <p>Open an AI assistant with a ready-made prompt about who I am, what I do, and how to get in touch.</p>
+      </div>
+      <div class="ai-ask-buttons">
+        <a class="ai-btn" href="https://chatgpt.com/?q=Tell%20me%20about%20David%20Czapala%20based%20on%20Czapala.com%20and%20summarize%20who%20they%20are%2C%20what%20they%20do%2C%20and%20how%20to%20get%20in%20touch." target="_blank" rel="noopener">ChatGPT</a>
+        <a class="ai-btn" href="https://www.perplexity.ai/search?q=Tell%20me%20about%20David%20Czapala%20based%20on%20Czapala.com%20and%20summarize%20who%20they%20are%2C%20what%20they%20do%2C%20and%20how%20to%20get%20in%20touch." target="_blank" rel="noopener">Perplexity</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>© 2026 czapala.com · <a href="mailto:david@czapala.com">david@czapala.com</a></footer>
+
+<script>
+  const railSvg = document.getElementById('rail-svg');
+  const baseTrace = document.getElementById('baseTrace');
+  const solidTrace = document.getElementById('solidTrace');
+  const flow = document.getElementById('flow');
+  const revealRect = document.getElementById('revealRect');
+  const sections = document.querySelectorAll('section');
+
+  /* wide back-and-forth path: lanes near the page edges (in viewBox % units) */
+  function buildTracePath(total){
+    const laneL = 8, laneR = 92, mid = 50;
+    const segLens = [130, 190, 110, 210, 150, 230, 120, 180, 160];
+    let d = `M${mid},0`;
+    let y = 0, x = mid, i = 0, toggle = 0;
+    while (y < total){
+      const seg = segLens[i % segLens.length]; i++;
+      const ny = Math.min(y + seg, total);
+      d += ` L${x},${ny}`;
+      y = ny;
+      if (y < total){
+        const nx = (toggle % 2 === 0) ? laneL : laneR;
+        d += ` L${nx},${y}`;
+        x = nx; toggle++;
+      }
+    }
+    return d;
+  }
+
+  function layoutTrace(){
+    const total = document.body.scrollHeight - 60;
+    railSvg.setAttribute('height', total);
+    railSvg.setAttribute('viewBox', `0 0 100 ${total}`);
+    const d = buildTracePath(total);
+    baseTrace.setAttribute('d', d);
+    solidTrace.setAttribute('d', d);
+    flow.setAttribute('d', d);
+    onScroll();
+  }
+
+  function onScroll(){
+    const total = document.body.scrollHeight - 60;
+    const scrolled = window.scrollY + window.innerHeight * 0.6 - 60;
+    const pct = Math.min(Math.max(scrolled / total, 0), 1);
+    revealRect.setAttribute('height', String(total * pct));
+  }
+  window.addEventListener('scroll', onScroll);
+  window.addEventListener('resize', layoutTrace);
+  layoutTrace();
+
+  let flowOffset = 0;
+  function animateFlow(){
+    flowOffset -= 1.6;
+    flow.setAttribute('stroke-dashoffset', String(flowOffset));
+    requestAnimationFrame(animateFlow);
+  }
+  animateFlow();
+
+  ['branch-l','branch-r'].forEach(id => {
+    const path = document.getElementById(id);
+    const len = path.getTotalLength();
+    path.style.strokeDasharray = len;
+    path.style.strokeDashoffset = len;
+  });
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('in');
+        if (e.target.id === 'hobbies') {
+          document.getElementById('branch-l').style.strokeDashoffset = 0;
+          document.getElementById('branch-r').style.strokeDashoffset = 0;
+        }
+      }
+    });
+  }, { threshold: 0.35 });
+  sections.forEach(s => io.observe(s));
+</script>
 </body>
 </html>

@@ -7,23 +7,23 @@
 <meta name="description" content="Vote head-to-head on your favorite board games and see the shared rankings.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --felt: #1e4d3a;
-    --felt-2: #163828;
-    --felt-line: rgba(255,255,255,0.06);
-    --wood: #b97a4b;
-    --wood-dark: #7c4e2c;
-    --card: #f7f1e1;
-    --card-edge: #e7dcc0;
-    --ink: #26200f;
-    --ink-dim: #6b6248;
-    --gold: #dda631;
-    --text-light: #f3f1e7;
-    --danger: #c8553d;
+    --felt: #0d1f33;
+    --felt-2: #0a1729;
+    --felt-line: rgba(120,170,220,0.10);
+    --wood: #2f6fed;
+    --wood-dark: #1a4fb8;
+    --card: #0f2138;
+    --card-edge: rgba(120,170,220,0.28);
+    --ink: #e7eef7;
+    --ink-dim: #7590ab;
+    --gold: #4f8fdb;
+    --text-light: #e7eef7;
+    --danger: #e0645a;
     --radius: 16px;
-    --font-display: 'Baloo 2', system-ui, sans-serif;
+    --font-display: 'JetBrains Mono', monospace;
     --font-body: 'Inter', system-ui, sans-serif;
   }
   *{box-sizing:border-box;}
@@ -33,7 +33,7 @@
     font-family:var(--font-body);
     color:var(--text-light);
     background:
-      radial-gradient(circle at 50% 0%, rgba(255,255,255,0.05), transparent 60%),
+      radial-gradient(circle at 50% 0%, rgba(120,170,220,0.08), transparent 60%),
       repeating-linear-gradient(45deg, rgba(0,0,0,0.035) 0 2px, transparent 2px 26px),
       linear-gradient(180deg, var(--felt), var(--felt-2));
   }
@@ -43,7 +43,7 @@
   .home-link{
     display:inline-flex;align-items:center;gap:6px;
     font-family:var(--font-body);font-weight:600;font-size:13px;
-    color:rgba(243,241,231,0.7);text-decoration:none;
+    color:rgba(231,238,247,0.7);text-decoration:none;
     padding:7px 14px;border-radius:999px;border:1px solid var(--felt-line);
     background:rgba(0,0,0,0.15);transition:color .15s, border-color .15s, background .15s;
   }
@@ -58,7 +58,7 @@
     font-family:var(--font-display);font-weight:800;font-size:clamp(30px,5vw,46px);
     margin:6px 0 6px;color:#fff;letter-spacing:-0.01em;
   }
-  .sub{color:rgba(243,241,231,0.75);font-size:15px;max-width:520px;margin:0 auto;}
+  .sub{color:rgba(231,238,247,0.75);font-size:15px;max-width:520px;margin:0 auto;}
 
   /* status banner */
   .banner{
@@ -66,7 +66,7 @@
     font-size:13px;text-align:center;display:none;
   }
   .banner.demo{
-    background:rgba(221,166,49,0.15);border:1px solid rgba(221,166,49,0.4);color:#ffe4a3;
+    background:rgba(79,143,219,0.15);border:1px solid rgba(79,143,219,0.4);color:#bfe3ff;
     display:block;
   }
 
@@ -75,17 +75,17 @@
     margin:22px auto 0;padding:12px 18px;border-radius:12px;max-width:640px;
     background:rgba(0,0,0,0.18);border:1px solid var(--felt-line);
   }
-  .identity-bar label{font-size:13px;color:rgba(243,241,231,0.75);font-weight:600;}
+  .identity-bar label{font-size:13px;color:rgba(231,238,247,0.75);font-weight:600;}
   .identity-bar select{
     font-family:var(--font-body);font-size:14px;color:var(--text-light);
     background:rgba(0,0,0,0.35);border:1px solid var(--felt-line);border-radius:8px;padding:8px 12px;
   }
   .identity-bar select:focus{outline:1px solid var(--gold);}
-  .identity-status{font-size:12px;color:rgba(243,241,231,0.55);}
+  .identity-status{font-size:12px;color:rgba(231,238,247,0.55);}
   .identity-status.locked{color:var(--gold);}
 
   .vote-hint{
-    font-size:12.5px;color:rgba(243,241,231,0.65);margin-top:14px;text-align:center;
+    font-size:12.5px;color:rgba(231,238,247,0.65);margin-top:14px;text-align:center;
   }
 
   .modal-backdrop{
@@ -101,9 +101,9 @@
   .modal p.hint{font-size:12.5px;color:var(--ink-dim);margin:0 0 16px;}
   .modal input[type=password]{
     width:100%;font-family:var(--font-body);font-size:15px;padding:10px 12px;
-    border-radius:8px;border:1px solid var(--card-edge);background:#fff;color:var(--ink);
+    border-radius:8px;border:1px solid var(--card-edge);background:var(--felt-2);color:var(--ink);
   }
-  .modal input[type=password]:focus{outline:1px solid var(--wood);}
+  .modal input[type=password]:focus{outline:1px solid var(--gold);}
   .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px;}
   .btn-modal{
     font-family:var(--font-body);font-weight:700;font-size:13px;border:none;
@@ -140,12 +140,12 @@
   .card-btn{
     background:var(--card);border:1px solid var(--card-edge);border-radius:var(--radius);
     padding:28px 20px;cursor:pointer;text-align:center;color:var(--ink);
-    box-shadow:0 18px 34px -18px rgba(0,0,0,0.55), inset 0 0 0 6px rgba(185,122,75,0.10);
+    box-shadow:0 18px 34px -18px rgba(0,0,0,0.55), inset 0 0 0 6px rgba(47,111,237,0.10);
     transition:transform .16s ease, box-shadow .16s ease;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     min-height:190px;position:relative;
   }
-  .card-btn:hover{transform:translateY(-4px);box-shadow:0 24px 40px -18px rgba(0,0,0,0.6), inset 0 0 0 6px rgba(185,122,75,0.18);}
+  .card-btn:hover{transform:translateY(-4px);box-shadow:0 24px 40px -18px rgba(0,0,0,0.6), inset 0 0 0 6px rgba(47,111,237,0.18);}
   .card-btn:active{transform:translateY(-1px) scale(0.99);}
   .card-btn.chosen{outline:3px solid var(--gold);}
   .card-icon{
@@ -155,7 +155,7 @@
   }
   .box-art{
     width:132px;height:132px;border-radius:10px;margin-bottom:14px;flex-shrink:0;
-    background:linear-gradient(100deg, #e7dcc0 0%, #f4efdf 50%, #e7dcc0 100%);
+    background:linear-gradient(100deg, rgba(120,170,220,0.28) 0%, #1c3350 50%, rgba(120,170,220,0.28) 100%);
     background-size:200% 100%;
     box-shadow:0 8px 18px -8px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(0,0,0,0.06);
     object-fit:cover;
@@ -178,19 +178,19 @@
   .vote-controls{margin-top:26px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:center;}
   .ghost-btn{
     font-family:var(--font-body);font-weight:600;font-size:13.5px;color:var(--text-light);
-    background:transparent;border:1px solid rgba(255,255,255,0.25);padding:9px 18px;border-radius:999px;
+    background:transparent;border:1px solid rgba(140,190,235,0.3);padding:9px 18px;border-radius:999px;
     cursor:pointer;transition:border-color .15s, background .15s;
   }
   .ghost-btn:hover{border-color:var(--gold);background:rgba(0,0,0,0.15);}
   .stat-pill{
-    font-size:13px;color:rgba(243,241,231,0.7);font-variant-numeric:tabular-nums;
+    font-size:13px;color:rgba(231,238,247,0.7);font-variant-numeric:tabular-nums;
   }
 
   /* ---------- RESULTS VIEW ---------- */
   #results-view{display:none;}
   .results-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
   .results-head h2{font-family:var(--font-display);font-size:22px;margin:0;color:#fff;}
-  .results-meta{font-size:12.5px;color:rgba(243,241,231,0.65);}
+  .results-meta{font-size:12.5px;color:rgba(231,238,247,0.65);}
 
   .board{
     background:rgba(0,0,0,0.18);border:1px solid var(--felt-line);border-radius:var(--radius);
@@ -201,20 +201,41 @@
     padding:13px 18px;border-bottom:1px solid var(--felt-line);
   }
   .row:last-child{border-bottom:none;}
-  .row:nth-child(odd){background:rgba(255,255,255,0.02);}
-  .rank{font-family:var(--font-display);font-weight:700;font-size:16px;color:rgba(243,241,231,0.55);text-align:center;}
+  .row:nth-child(odd){background:rgba(120,170,220,0.04);}
+  .rank{font-family:var(--font-display);font-weight:700;font-size:16px;color:rgba(231,238,247,0.55);text-align:center;}
   .rank.medal{font-size:22px;}
   .row-name{font-weight:600;font-size:15px;color:#fff;}
-  .row-record{font-size:12px;color:rgba(243,241,231,0.55);white-space:nowrap;}
+  .row-record{font-size:12px;color:rgba(231,238,247,0.55);white-space:nowrap;}
   .rating-chip{
     font-family:var(--font-body);font-weight:700;font-size:13.5px;color:var(--ink);
     background:var(--gold);padding:5px 11px;border-radius:8px;min-width:56px;text-align:center;
   }
-  .empty-state{padding:40px 20px;text-align:center;color:rgba(243,241,231,0.7);font-size:14px;}
+  .empty-state{padding:40px 20px;text-align:center;color:rgba(231,238,247,0.7);font-size:14px;}
 
   footer.pagefoot{
-    text-align:center;margin-top:44px;font-size:12px;color:rgba(243,241,231,0.45);
+    text-align:center;margin-top:44px;font-size:12px;color:rgba(231,238,247,0.45);
   }
+  footer.pagefoot a{color:var(--gold);text-decoration:none;border-bottom:1px solid rgba(120,170,220,0.3);padding-bottom:1px;}
+  footer.pagefoot a:hover{border-color:var(--gold);}
+
+  .ai-ask{
+    background:var(--card);border:1px solid var(--card-edge);border-radius:14px;
+    padding:20px 22px;display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:space-between;
+    margin-top:34px;
+  }
+  .ai-ask-eyebrow{
+    display:block;font-family:var(--font-display);font-size:11px;letter-spacing:0.14em;
+    text-transform:uppercase;color:var(--gold);margin-bottom:6px;
+  }
+  .ai-ask-copy p{margin:0;font-size:13.5px;color:var(--ink-dim);max-width:340px;line-height:1.55;}
+  .ai-ask-buttons{display:flex;flex-wrap:wrap;gap:9px;}
+  .ai-btn{
+    font-family:var(--font-display);font-size:12px;color:var(--gold);
+    text-decoration:none;border:1px solid var(--card-edge);
+    padding:8px 15px;border-radius:999px;transition:border-color .15s, background .15s;
+  }
+  .ai-btn:hover{background:rgba(120,170,220,0.1);border-color:var(--gold);}
+  @media (max-width:560px){.ai-ask{flex-direction:column;align-items:flex-start;}}
 </style>
 </head>
 <body>
@@ -269,7 +290,18 @@
     <div class="board" id="board"></div>
   </div>
 
-  <footer class="pagefoot">Ranked by Elo rating, updated live after every vote.</footer>
+  <div class="ai-ask">
+    <div class="ai-ask-copy">
+      <span class="ai-ask-eyebrow">Ask an AI</span>
+      <p>Open an AI assistant with a ready-made prompt about who David is, what he does, and how to get in touch.</p>
+    </div>
+    <div class="ai-ask-buttons">
+      <a class="ai-btn" href="https://chatgpt.com/?q=Tell%20me%20about%20David%20Czapala%20based%20on%20Czapala.com%20and%20summarize%20who%20they%20are%2C%20what%20they%20do%2C%20and%20how%20to%20get%20in%20touch." target="_blank" rel="noopener">ChatGPT</a>
+      <a class="ai-btn" href="https://www.perplexity.ai/search?q=Tell%20me%20about%20David%20Czapala%20based%20on%20Czapala.com%20and%20summarize%20who%20they%20are%2C%20what%20they%20do%2C%20and%20how%20to%20get%20in%20touch." target="_blank" rel="noopener">Perplexity</a>
+    </div>
+  </div>
+
+  <footer class="pagefoot">Ranked by Elo rating, updated live after every vote. · <a href="mailto:david@czapala.com">david@czapala.com</a></footer>
 </div>
 
 <div class="modal-backdrop" id="pin-modal">
@@ -324,7 +356,7 @@ const firebaseConfig = {
   appId: "1:636811553872:web:02f83707139b1a27cf3555"
 };
 
-const GAMES = ["3 Chapters", "Air, Land, & Sea", "Azul", "Bomb Busters", "Captain Flip", "Cascadia", "Castle Combo", "Codenames: Pictures", "Deep Sea Adventure", "dnup", "Dune: Imperium", "Excalibur", "Ezra and Nehemiah", "A Fake Artist Goes to New York", "Faraway", "Flip 7", "Flip 7: With A Vengeance", "Green Team Wins", "Horrified", "Jaipur", "Just One", "Kinfire Delve: Vainglory's Grotto", "Knarr", "The Lord of the Rings: Duel for Middle-earth", "The Lord of the Rings: The Fellowship of the Ring – Trick-Taking Game", "Marvel: Remix", "Marvel United", "Mexican Train", "Muffin Time: Deluxe Edition", "Quacks", "The Quest for El Dorado", "Ra", "Railroad Ink: Deep Blue Edition", "Rainbow", "Rolling Realms", "Sagrada: The Great Facades – Life", "SCOUT", "Sea Salt & Paper", "Skull", "So Clover!", "Space Base", "Splito", "Star Wars: The Deckbuilding Game", "Sushi Go Party!", "Trio", "Tsuro", "Undaunted: Normandy", "Unmatched: Cobble & Fog", "Unmatched: Jurassic Park – InGen vs Raptors", "Unmatched Adventures: Teenage Mutant Ninja Turtles", "UNO Teams!", "The Vale of Eternity", "The White Castle", "Wingspan", "dnup", "For Sale", "Root", "Splendor"];
+const GAMES = ["3 Chapters", "20 Strong: Tanglewoods Red", "Air, Land, & Sea", "Azul", "Bomb Busters", "Captain Flip", "Cascadia", "Castle Combo", "Codenames: Pictures", "Deep Sea Adventure", "dnup", "Dune: Imperium", "Excalibur", "Ezra and Nehemiah", "A Fake Artist Goes to New York", "Faraway", "Flip 7", "Flip 7: With A Vengeance", "Green Team Wins", "Horrified", "Jaipur", "Just One", "Kinfire Delve: Vainglory's Grotto", "Knarr", "The Lord of the Rings: Duel for Middle-earth", "The Lord of the Rings: The Fellowship of the Ring – Trick-Taking Game", "Marvel: Remix", "Marvel United", "Mexican Train", "Muffin Time: Deluxe Edition", "Quacks", "The Quest for El Dorado", "Ra", "Railroad Ink: Deep Blue Edition", "Rainbow", "Rolling Realms", "Sagrada: The Great Facades – Life", "SCOUT", "Sea Salt & Paper", "Skull", "So Clover!", "Space Base", "Splito", "Star Wars: The Deckbuilding Game", "Sushi Go Party!", "Trio", "Tsuro", "Undaunted: Normandy", "Unmatched: Cobble & Fog", "Unmatched: Jurassic Park – InGen vs Raptors", "Unmatched Adventures: Teenage Mutant Ninja Turtles", "UNO Teams!", "The Vale of Eternity", "The White Castle", "Wingspan", "For Sale", "Root", "Splendor"];
 
 const PLAYERS = ["Aaron Le","Alicia Tran","Amy Donald","Angela Duong","Annabelle Tran","Christy Kanya","David Czapala","Diana Vo","Jack Beala","James Donald","Jason Pillay","Jay Yu","Jeremy Lim","Jess Cabral","Jess Mollenbeck","Jojo","Joseph Nebiar","Katie Czapala","Kevin Ing","Krit","Linda Chan","Linda Y","Liz Donald","Monique Duong","Nathaniel Seil","Nguyen Nguyen","Nikki Orkley","Pari P","Sam Poddar","Stasia Zhao","Steph A","Tees","Tennille","Thahn","Thersa Ho","Tim Donald","Tino","Tony Nguyen"];
 const VOTE_PIN_HASH = "0fb2ef77c9f54a0b950bc63a49c1275838e93bd24f21e494fd43e34068ff5d79"; // sha-256 of the PIN, not the PIN itself
@@ -443,6 +475,7 @@ function computeElo(ratingA, ratingB){
    live BGG search; if that fails too, they just show the initials badge.
    ========================================================================= */
 const BGG_ART = {
+  "20 Strong: Tanglewoods Red": "https://cf.geekdo-images.com/egIQX7y4E_uxOvWkmpq6QA__original/img/u6VFxVrLh2W4Mcf00W8Uz_Proak=/0x0/filters:format(png)/pic8308903.png",
   "3 Chapters": "https://cf.geekdo-images.com/es3F2drfUOIVnqsTds3BDQ__original/img/aagzL4ORPemw2xi3FL4575gKYhA=/0x0/filters:format(png)/pic8940639.png",
   "A Fake Artist Goes to New York": "https://cf.geekdo-images.com/5Q5YHxJeVp6PAhfv5Ct0-g__original/img/yRNioltDOtjrTRXa0HHoTTCWNf8=/0x0/filters:format(png)/pic3678404.png",
   "Air, Land, & Sea": "https://cf.geekdo-images.com/3wpYeNwO7k_yjpIN7IQwaw__original/img/_qQC98hufgmPn_fwMrP4I0sYKO8=/0x0/filters:format(jpeg)/pic4387681.jpg",

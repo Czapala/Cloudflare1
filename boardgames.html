@@ -233,6 +233,27 @@
   }
   .empty-state{padding:40px 20px;text-align:center;color:rgba(231,238,247,0.7);font-size:14px;}
 
+  /* ---------- USER RANKINGS VIEW ---------- */
+  #users-view{display:none;}
+  .users-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media (max-width:640px){.users-grid{grid-template-columns:1fr;}}
+  .user-card{
+    background:rgba(0,0,0,0.18);border:1px solid var(--felt-line);border-radius:var(--radius);
+    padding:18px 20px;
+  }
+  .user-card h3{font-family:var(--font-display);font-size:15.5px;color:#fff;margin:0 0 3px;}
+  .user-card .vote-total{font-size:11.5px;color:rgba(231,238,247,0.55);margin-bottom:12px;}
+  .user-top-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px;}
+  .user-top-list li{display:flex;align-items:center;gap:10px;font-size:13px;}
+  .user-top-list .u-rank{
+    font-family:var(--font-display);font-weight:700;font-size:11.5px;color:var(--gold);
+    width:16px;flex-shrink:0;
+  }
+  .user-top-list .u-name{flex:1;color:var(--ink);}
+  .user-top-list .u-count{
+    font-family:var(--font-display);font-size:11px;color:rgba(231,238,247,0.5);flex-shrink:0;
+  }
+
   footer.pagefoot{
     text-align:center;margin-top:44px;font-size:12px;color:rgba(231,238,247,0.45);
   }
@@ -267,6 +288,7 @@
   <nav class="tabs">
     <button class="tab active" id="tab-vote" onclick="showView('vote')">Vote</button>
     <button class="tab" id="tab-results" onclick="showView('results')">Leaderboard</button>
+    <button class="tab" id="tab-users" onclick="showView('users')">User Rankings</button>
   </nav>
 
   <!-- VOTE VIEW -->
@@ -288,6 +310,15 @@
       <span class="results-meta" id="results-meta"></span>
     </div>
     <div class="board" id="board"></div>
+  </div>
+
+  <!-- USER RANKINGS VIEW -->
+  <div id="users-view">
+    <div class="results-head">
+      <h2>User Rankings</h2>
+      <span class="results-meta" id="users-meta"></span>
+    </div>
+    <div class="users-grid" id="users-board"></div>
   </div>
 
   <footer class="pagefoot">Ranked by Elo rating, updated live after every vote.</footer>
@@ -452,6 +483,15 @@ function computeElo(ratingA, ratingB){
   const newA = Math.round(ratingA + K_FACTOR * (1 - expectedA));
   const newB = Math.round(ratingB + K_FACTOR * (0 - expectedB));
   return [newA, newB];
+}
+
+async function getAllVotes(){
+  if (!demoMode && db) {
+    const { collection, getDocs } = window._fs;
+    const snap = await getDocs(collection(db, 'boardgame_votes'));
+    return snap.docs.map(d => d.data());
+  }
+  return JSON.parse(localStorage.getItem('boardgame_votes_demo') || '[]');
 }
 
 /* =========================================================================
@@ -797,10 +837,52 @@ async function renderResults(){
 window.showView = function(which){
   document.getElementById('vote-view').style.display = which === 'vote' ? 'flex' : 'none';
   document.getElementById('results-view').style.display = which === 'results' ? 'block' : 'none';
+  document.getElementById('users-view').style.display = which === 'users' ? 'block' : 'none';
   document.getElementById('tab-vote').classList.toggle('active', which === 'vote');
   document.getElementById('tab-results').classList.toggle('active', which === 'results');
+  document.getElementById('tab-users').classList.toggle('active', which === 'users');
   if (which === 'results') renderResults();
+  if (which === 'users') renderUserRankings();
 };
+
+/* ---------------- user rankings ---------------- */
+async function renderUserRankings(){
+  const votes = await getAllVotes();
+
+  const byVoter = {};
+  votes.forEach(v => {
+    if (!v.voter || !v.winner) return;
+    if (!byVoter[v.voter]) byVoter[v.voter] = {};
+    byVoter[v.voter][v.winner] = (byVoter[v.voter][v.winner] || 0) + 1;
+  });
+
+  const voters = Object.keys(byVoter).sort((a,b) => a.localeCompare(b));
+  document.getElementById('users-meta').textContent =
+    `${voters.length} player${voters.length===1?'':'s'} have voted`;
+
+  const board = document.getElementById('users-board');
+  if (voters.length === 0) {
+    board.innerHTML = `<div class="empty-state">No votes yet — be the first! Head to the Vote tab.</div>`;
+    return;
+  }
+
+  board.innerHTML = voters.map(name => {
+    const counts = byVoter[name];
+    const top5 = Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0,5);
+    const totalVotes = Object.values(counts).reduce((sum,c) => sum + c, 0);
+    return `
+      <div class="user-card">
+        <h3>${name}</h3>
+        <div class="vote-total">${totalVotes} vote${totalVotes===1?'':'s'} cast</div>
+        <ol class="user-top-list">
+          ${top5.map(([game,count],i) => `
+            <li><span class="u-rank">${i+1}</span><span class="u-name">${game}</span><span class="u-count">${count}×</span></li>
+          `).join('')}
+        </ol>
+      </div>
+    `;
+  }).join('');
+}
 
 /* ---------------- boot ---------------- */
 (async function boot(){

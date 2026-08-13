@@ -250,11 +250,12 @@ const firebaseConfig = {
 
 const GAMES_COLLECTION = "games_master";
 const RANKINGS_COLLECTION = "boardgame_rankings";
+const PLAYERS_COLLECTION = "players";
 
 // The original hardcoded game list, used only as a one-click seed for an empty games_master.
 const SEED_GAMES = ["3 Chapters", "20 Strong: Tanglewoods Red", "Air, Land, & Sea", "Azul", "Bomb Busters", "Captain Flip", "Cascadia", "Castle Combo", "Codenames: Pictures", "Deep Sea Adventure", "dnup", "Dune: Imperium", "Excalibur", "Ezra and Nehemiah", "A Fake Artist Goes to New York", "Faraway", "Flip 7", "Flip 7: With A Vengeance", "Green Team Wins", "Horrified", "Jaipur", "Just One", "Kinfire Delve: Vainglory's Grotto", "Knarr", "The Lord of the Rings: Duel for Middle-earth", "The Lord of the Rings: The Fellowship of the Ring – Trick-Taking Game", "Marvel: Remix", "Marvel United", "Mexican Train", "Muffin Time: Deluxe Edition", "Quacks", "The Quest for El Dorado", "Ra", "Railroad Ink: Deep Blue Edition", "Rainbow", "Rolling Realms", "Sagrada: The Great Facades – Life", "SCOUT", "Sea Salt & Paper", "Skull", "So Clover!", "Space Base", "Splito", "Star Wars: The Deckbuilding Game", "Sushi Go Party!", "Trio", "Tsuro", "Undaunted: Normandy", "Unmatched: Cobble & Fog", "Unmatched: Jurassic Park – InGen vs Raptors", "Unmatched Adventures: Teenage Mutant Ninja Turtles", "UNO Teams!", "The Vale of Eternity", "The White Castle", "Wingspan", "For Sale", "Root", "Splendor"];
 
-const PLAYERS = ["Aaron Le","Alicia Tran","Amy Donald","Angela Duong","Annabelle Tran","Christy Kanya","David Czapala","Diana Vo","Jack Beala","James Donald","Jason Pillay","Jay Yu","Jeremy Lim","Jess Cabral","Jess Mollenbeck","Jojo","Joseph Nebiar","Katie Czapala","Kevin Ing","Krit","Linda Chan","Linda Y","Liz Donald","Monique Duong","Nathaniel Seil","Nguyen Nguyen","Nikki Orkley","Pari P","Sam Poddar","Stasia Zhao","Steph A","Tees","Tennille","Thahn","Thersa Ho","Tim Donald","Tino","Tony Nguyen"];
+const SEED_PLAYERS = ["Aaron Le","Alicia Tran","Amy Donald","Angela Duong","Annabelle Tran","Christy Kanya","David Czapala","Diana Vo","Jack Beala","James Donald","Jason Pillay","Jay Yu","Jeremy Lim","Jess Cabral","Jess Mollenbeck","Jojo","Joseph Nebiar","Katie Czapala","Kevin Ing","Krit","Linda Chan","Linda Y","Liz Donald","Monique Duong","Nathaniel Seil","Nguyen Nguyen","Nikki Orkley","Pari P","Sam Poddar","Stasia Zhao","Steph A","Tees","Tennille","Thahn","Thersa Ho","Tim Donald","Tino","Tony Nguyen"];
 
 function slugify(name){
   return name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
@@ -315,8 +316,48 @@ function updateAdminBadge(){
 /* ---- local (demo) storage ---- */
 const LOCAL_GAMES = 'boardgame_games_demo';
 const LOCAL_RANKINGS = 'boardgame_rankings_demo';
+const LOCAL_PLAYERS = 'players_demo';
 function localGet(key, fallback){ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }
 function localSet(key, data){ localStorage.setItem(key, JSON.stringify(data)); }
+
+/* ---------------- players (shared with /gamenight) ---------------- */
+async function getPlayers(){
+  if (!demoMode && db) {
+    const { collection, getDocs } = window._fs;
+    const snap = await getDocs(collection(db, PLAYERS_COLLECTION));
+    const out = {};
+    snap.forEach(d => { out[d.id] = d.data(); });
+    return out;
+  }
+  return localGet(LOCAL_PLAYERS, {});
+}
+
+async function addPlayer(name){
+  const id = slugify(name);
+  if (!demoMode && db) {
+    const { doc, setDoc } = window._fs;
+    await setDoc(doc(db, PLAYERS_COLLECTION, id), { name });
+  } else {
+    const all = localGet(LOCAL_PLAYERS, {});
+    all[id] = { name };
+    localSet(LOCAL_PLAYERS, all);
+  }
+}
+
+async function seedPlayers(){
+  for (const name of SEED_PLAYERS) { await addPlayer(name); }
+}
+
+async function removePlayer(id){
+  if (!demoMode && db) {
+    const { doc, deleteDoc } = window._fs;
+    await deleteDoc(doc(db, PLAYERS_COLLECTION, id));
+  } else {
+    const all = localGet(LOCAL_PLAYERS, {});
+    delete all[id];
+    localSet(LOCAL_PLAYERS, all);
+  }
+}
 
 /* ---------------- games master ---------------- */
 async function getGames(){
@@ -422,15 +463,22 @@ const IDENTITY_KEY = 'boardgame_identity';
 function getIdentity(){ return localStorage.getItem(IDENTITY_KEY) || ""; }
 function setIdentity(name){ localStorage.setItem(IDENTITY_KEY, name); }
 
-function populateIdentitySelect(){
+let identitySelectBound = false;
+async function populateIdentitySelect(){
   const sel = document.getElementById('identity-select');
-  PLAYERS.forEach(name => {
+  const players = await getPlayers();
+  const names = Object.values(players).map(p => p.name).sort();
+  sel.innerHTML = '<option value="">Select your name…</option>';
+  names.forEach(name => {
     const opt = document.createElement('option');
     opt.value = name; opt.textContent = name;
     sel.appendChild(opt);
   });
   sel.value = getIdentity();
-  sel.addEventListener('change', () => { setIdentity(sel.value); renderCurrentView(); });
+  if (!identitySelectBound) {
+    sel.addEventListener('change', () => { setIdentity(sel.value); renderCurrentView(); });
+    identitySelectBound = true;
+  }
 }
 
 /* ---------------- My List view ---------------- */
@@ -557,15 +605,24 @@ async function renderPlayers(){
   }).join('');
 }
 
-/* ---------------- Admin panel (game management) ---------------- */
+/* ---------------- Admin panel (game + player management) ---------------- */
 async function renderAdminPanel(){
   const el = document.getElementById('admin-panel');
   if (!isAdminSession) { el.innerHTML = ''; return; }
   const games = await getGames();
-  const rows = Object.keys(games).sort((a,b) => games[a].name.localeCompare(games[b].name)).map(id => `
+  const players = await getPlayers();
+
+  const gameRows = Object.keys(games).sort((a,b) => games[a].name.localeCompare(games[b].name)).map(id => `
     <div class="game-admin-row">
       <span>${escapeHtml(games[id].name)}</span>
-      <button class="mini-btn danger" data-remove="${id}" title="Remove game">✕</button>
+      <button class="mini-btn danger" data-remove-game="${id}" title="Remove game">✕</button>
+    </div>
+  `).join('');
+
+  const playerRows = Object.keys(players).sort((a,b) => players[a].name.localeCompare(players[b].name)).map(id => `
+    <div class="game-admin-row">
+      <span>${escapeHtml(players[id].name)}</span>
+      <button class="mini-btn danger" data-remove-player="${id}" title="Remove player">✕</button>
     </div>
   `).join('');
 
@@ -578,7 +635,17 @@ async function renderAdminPanel(){
           <button class="btn" id="add-game-btn">+ Add game</button>
         </div>
       </div>
-      ${rows || '<div class="empty-state">No games yet.</div>'}
+      ${gameRows || '<div class="empty-state">No games yet.</div>'}
+    </div>
+    <div class="admin-card">
+      <div class="section-head">
+        <h2>Manage Players</h2>
+        <div style="display:flex;gap:8px;">
+          ${Object.keys(players).length === 0 ? '<button class="btn ghost" id="seed-players-btn">Seed original 38</button>' : ''}
+          <button class="btn" id="add-player-btn">+ Add player</button>
+        </div>
+      </div>
+      ${playerRows || '<div class="empty-state">No players yet.</div>'}
     </div>
   `;
 
@@ -595,10 +662,34 @@ async function renderAdminPanel(){
       renderCurrentView();
     }
   });
-  el.querySelectorAll('[data-remove]').forEach(btn => {
+  el.querySelectorAll('[data-remove-game]').forEach(btn => {
     btn.addEventListener('click', async () => {
-      if (!confirm(`Remove "${games[btn.dataset.remove].name}" from every list?`)) return;
-      await removeGame(btn.dataset.remove);
+      if (!confirm(`Remove "${games[btn.dataset.removeGame].name}" from every list?`)) return;
+      await removeGame(btn.dataset.removeGame);
+      renderCurrentView();
+    });
+  });
+
+  const seedPlayersBtn = document.getElementById('seed-players-btn');
+  if (seedPlayersBtn) seedPlayersBtn.addEventListener('click', async () => {
+    seedPlayersBtn.disabled = true; seedPlayersBtn.textContent = 'Seeding…';
+    await seedPlayers();
+    await populateIdentitySelect();
+    renderCurrentView();
+  });
+  document.getElementById('add-player-btn').addEventListener('click', async () => {
+    const name = prompt('Player name:');
+    if (name && name.trim()) {
+      await addPlayer(name.trim());
+      await populateIdentitySelect();
+      renderCurrentView();
+    }
+  });
+  el.querySelectorAll('[data-remove-player]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm(`Remove "${players[btn.dataset.removePlayer].name}" from the player list?`)) return;
+      await removePlayer(btn.dataset.removePlayer);
+      await populateIdentitySelect();
       renderCurrentView();
     });
   });
@@ -658,8 +749,8 @@ document.getElementById('admin-password').addEventListener('keydown', (e) => {
 /* ---------------- boot ---------------- */
 (async function boot(){
   updateAdminBadge();
-  populateIdentitySelect();
   await initStorage();
+  await populateIdentitySelect();
   renderCurrentView();
 })();
 </script>

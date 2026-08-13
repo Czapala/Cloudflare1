@@ -80,6 +80,14 @@
   .btn.ghost:hover{color:var(--accent-bright);border-color:var(--accent-bright);}
   .btn.small{padding:6px 14px;font-size:12.5px;}
   .btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+  .admin-card{background:var(--panel,#0f2138);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin-top:22px;}
+  .admin-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px;}
+  .admin-row:last-child{border-bottom:none;}
+  .mini-btn{
+    font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--danger,#e0645a);
+    background:transparent;border:1px solid var(--line);border-radius:6px;
+    width:26px;height:26px;cursor:pointer;
+  }
 
   /* event card */
   .event-card{
@@ -233,6 +241,8 @@
   </div>
   <div id="past-events"></div>
 
+  <div id="admin-panel"></div>
+
   <div class="ai-ask">
     <div class="ai-ask-copy">
       <span class="ai-ask-eyebrow">Ask an AI</span>
@@ -314,7 +324,8 @@ const firebaseConfig = {
 
 const COLLECTION = "game_nights";
 
-const PLAYERS = ["Aaron Le","Alicia Tran","Amy Donald","Angela Duong","Annabelle Tran","Christy Kanya","David Czapala","Diana Vo","Jack Beala","James Donald","Jason Pillay","Jay Yu","Jeremy Lim","Jess Cabral","Jess Mollenbeck","Jojo","Joseph Nebiar","Katie Czapala","Kevin Ing","Krit","Linda Chan","Linda Y","Liz Donald","Monique Duong","Nathaniel Seil","Nguyen Nguyen","Nikki Orkley","Pari P","Sam Poddar","Stasia Zhao","Steph A","Tees","Tennille","Thahn","Thersa Ho","Tim Donald","Tino","Tony Nguyen"];
+const SEED_PLAYERS = ["Aaron Le","Alicia Tran","Amy Donald","Angela Duong","Annabelle Tran","Christy Kanya","David Czapala","Diana Vo","Jack Beala","James Donald","Jason Pillay","Jay Yu","Jeremy Lim","Jess Cabral","Jess Mollenbeck","Jojo","Joseph Nebiar","Katie Czapala","Kevin Ing","Krit","Linda Chan","Linda Y","Liz Donald","Monique Duong","Nathaniel Seil","Nguyen Nguyen","Nikki Orkley","Pari P","Sam Poddar","Stasia Zhao","Steph A","Tees","Tennille","Thahn","Thersa Ho","Tim Donald","Tino","Tony Nguyen"];
+const PLAYERS_COLLECTION = "players";
 
 const GAMES = ["3 Chapters","7 Wonders","20 Strong: Tanglewoods Red","Air, Land, & Sea","Azul","Bomb Busters","Captain Flip","Cascadia","Castle Combo","Codenames: Pictures","Coup","The Crew: Mission Deep Sea","Decrypto","Deep Sea Adventure","Disney Villainous: The Worst Takes it All","Dixit","dnup","Dune: Imperium","Excalibur","Ezra and Nehemiah","A Fake Artist Goes to New York","Faraway","Flip 7","Flip 7: With A Vengeance","For Sale","Green Team Wins","Horrified","Infinity Gauntlet: A Love Letter Game","Inheritors","Jaipur","Just One","Kinfire Delve: Vainglory's Grotto","Knarr","The Lord of the Rings: Duel for Middle-earth","The Lord of the Rings: The Fellowship of the Ring – Trick-Taking Game","Marvel: Remix","Marvel United","Mexican Train","Muffin Time: Deluxe Edition","Mysterium Park","Quacks","The Quest for El Dorado","Ra","Railroad Ink: Deep Blue Edition","Rainbow","Rolling Realms","Root","Saboteur","Sagrada: The Great Facades – Life","Santorini","SCOUT","Sea Salt & Paper","Selfish: Zombie Edition","Skull","So Clover!","Space Base","Splendor","Splito","Star Wars: The Deckbuilding Game","Sushi Go Party!","Texas Hold'em","Ticket to Ride: Europe","Trio","Tsuro","Undaunted: Normandy","Unmatched: Cobble & Fog","Unmatched: Jurassic Park – InGen vs Raptors","Unmatched Adventures: Teenage Mutant Ninja Turtles","UNO Teams!","The Vale of Eternity","The White Castle","Wingspan"];
 
@@ -381,6 +392,51 @@ function localSaveAll(data){
 
 function newId(){
   return 'ev_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
+function slugify(name){
+  return name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+}
+
+/* ---------------- players (shared with /boardgames) ---------------- */
+const LOCAL_PLAYERS = 'players_demo';
+async function getPlayers(){
+  if (!demoMode && db) {
+    const { collection, getDocs } = window._fs;
+    const snap = await getDocs(collection(db, PLAYERS_COLLECTION));
+    const out = {};
+    snap.forEach(d => { out[d.id] = d.data(); });
+    return out;
+  }
+  const raw = localStorage.getItem(LOCAL_PLAYERS);
+  return raw ? JSON.parse(raw) : {};
+}
+
+async function addPlayer(name){
+  const id = slugify(name);
+  if (!demoMode && db) {
+    const { doc, setDoc } = window._fs;
+    await setDoc(doc(db, PLAYERS_COLLECTION, id), { name });
+  } else {
+    const all = JSON.parse(localStorage.getItem(LOCAL_PLAYERS) || '{}');
+    all[id] = { name };
+    localStorage.setItem(LOCAL_PLAYERS, JSON.stringify(all));
+  }
+}
+
+async function seedPlayers(){
+  for (const name of SEED_PLAYERS) { await addPlayer(name); }
+}
+
+async function removePlayer(id){
+  if (!demoMode && db) {
+    const { doc, deleteDoc } = window._fs;
+    await deleteDoc(doc(db, PLAYERS_COLLECTION, id));
+  } else {
+    const all = JSON.parse(localStorage.getItem(LOCAL_PLAYERS) || '{}');
+    delete all[id];
+    localStorage.setItem(LOCAL_PLAYERS, JSON.stringify(all));
+  }
 }
 
 async function getAllEvents(){
@@ -467,15 +523,22 @@ const IDENTITY_KEY = 'gamenight_identity';
 function getIdentity(){ return localStorage.getItem(IDENTITY_KEY) || ""; }
 function setIdentity(name){ localStorage.setItem(IDENTITY_KEY, name); }
 
-function populateIdentitySelect(){
+let identitySelectBound = false;
+async function populateIdentitySelect(){
   const sel = document.getElementById('identity-select');
-  PLAYERS.forEach(name => {
+  const players = await getPlayers();
+  const names = Object.values(players).map(p => p.name).sort();
+  sel.innerHTML = '<option value="">Select your name…</option>';
+  names.forEach(name => {
     const opt = document.createElement('option');
     opt.value = name; opt.textContent = name;
     sel.appendChild(opt);
   });
   sel.value = getIdentity();
-  sel.addEventListener('change', () => { setIdentity(sel.value); renderAll(); });
+  if (!identitySelectBound) {
+    sel.addEventListener('change', () => { setIdentity(sel.value); renderAll(); });
+    identitySelectBound = true;
+  }
 }
 
 /* ---------------- rendering ---------------- */
@@ -527,6 +590,57 @@ async function renderAll(){
     : `<div class="empty-state">No past game nights on record.</div>`;
 
   attachEventHandlers();
+  renderAdminPlayerPanel();
+}
+
+/* ---------------- Admin panel (player management) ---------------- */
+async function renderAdminPlayerPanel(){
+  const el = document.getElementById('admin-panel');
+  if (!isAdminSession) { el.innerHTML = ''; return; }
+  const players = await getPlayers();
+  const rows = Object.keys(players).sort((a,b) => players[a].name.localeCompare(players[b].name)).map(id => `
+    <div class="admin-row">
+      <span>${escapeHtml(players[id].name)}</span>
+      <button class="mini-btn" data-remove-player="${id}" title="Remove player">✕</button>
+    </div>
+  `).join('');
+
+  el.innerHTML = `
+    <div class="admin-card">
+      <div class="section-head" style="margin-top:0;">
+        <h2>Manage Players</h2>
+        <div style="display:flex;gap:8px;">
+          ${Object.keys(players).length === 0 ? '<button class="btn ghost small" id="seed-players-btn">Seed original 38</button>' : ''}
+          <button class="btn small" id="add-player-btn">+ Add player</button>
+        </div>
+      </div>
+      ${rows || '<div class="empty-state">No players yet.</div>'}
+    </div>
+  `;
+
+  const seedBtn = document.getElementById('seed-players-btn');
+  if (seedBtn) seedBtn.addEventListener('click', async () => {
+    seedBtn.disabled = true; seedBtn.textContent = 'Seeding…';
+    await seedPlayers();
+    await populateIdentitySelect();
+    renderAll();
+  });
+  document.getElementById('add-player-btn').addEventListener('click', async () => {
+    const name = prompt('Player name:');
+    if (name && name.trim()) {
+      await addPlayer(name.trim());
+      await populateIdentitySelect();
+      renderAll();
+    }
+  });
+  el.querySelectorAll('[data-remove-player]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm(`Remove "${players[btn.dataset.removePlayer].name}" from the player list?`)) return;
+      await removePlayer(btn.dataset.removePlayer);
+      await populateIdentitySelect();
+      renderAll();
+    });
+  });
 }
 
 function renderEventCard(id, ev, identity, isPast){
@@ -705,8 +819,8 @@ document.getElementById('event-submit').addEventListener('click', async () => {
 /* ---------------- boot ---------------- */
 (async function boot(){
   updateAdminBadge();
-  populateIdentitySelect();
   await initStorage();
+  await populateIdentitySelect();
   await renderAll();
 })();
 </script>

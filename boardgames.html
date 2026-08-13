@@ -107,11 +107,12 @@
   .list-rank{font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--gold);text-align:center;}
   .rank-input{
     width:42px;font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--gold);
-    text-align:center;background:rgba(0,0,0,0.3);border:1px solid var(--felt-line);border-radius:6px;
-    padding:4px 2px;-moz-appearance:textfield;
+    text-align:center;background:rgba(0,0,0,0.3);border:1.5px solid rgba(79,143,219,0.55);border-radius:6px;
+    padding:4px 2px;-moz-appearance:textfield;cursor:text;transition:border-color .15s, background .15s;
   }
+  .rank-input:hover{border-color:var(--gold);background:rgba(0,0,0,0.45);}
   .rank-input::-webkit-outer-spin-button, .rank-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
-  .rank-input:focus{outline:1px solid var(--gold);}
+  .rank-input:focus{outline:1px solid var(--gold);border-color:var(--gold);}
   .list-name{font-weight:600;font-size:14.5px;color:#fff;}
   .list-btns{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;}
   .mini-btn{
@@ -536,6 +537,7 @@ async function renderMyList(){
   `).join('');
 
   el.innerHTML = `
+    <p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 12px;">Tap the number to type a rank directly, or use the buttons to move a game.</p>
     <div class="board">${rows || '<div class="empty-state">Your list is empty — add games below.</div>'}</div>
     <div class="avail-section">
       <h3>Not yet ranked</h3>

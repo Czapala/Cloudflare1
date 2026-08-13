@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Boardgame Showdown — Vote for your favorite</title>
-<meta name="description" content="Vote head-to-head on your favorite board games and see the shared rankings.">
+<title>Boardgame Rankings — czapala.com</title>
+<meta name="description" content="Rank your favorite board games and see the combined group leaderboard.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,12 +14,12 @@
     --felt-2: #0a1729;
     --felt-line: rgba(120,170,220,0.10);
     --wood: #2f6fed;
-    --wood-dark: #1a4fb8;
     --card: #0f2138;
     --card-edge: rgba(120,170,220,0.28);
     --ink: #e7eef7;
     --ink-dim: #7590ab;
     --gold: #4f8fdb;
+    --mono: #7ee787;
     --text-light: #e7eef7;
     --danger: #e0645a;
     --radius: 16px;
@@ -28,10 +28,7 @@
   }
   *{box-sizing:border-box;}
   body{
-    margin:0;
-    min-height:100vh;
-    font-family:var(--font-body);
-    color:var(--text-light);
+    margin:0;min-height:100vh;font-family:var(--font-body);color:var(--text-light);
     background:
       radial-gradient(circle at 50% 0%, rgba(120,170,220,0.08), transparent 60%),
       repeating-linear-gradient(45deg, rgba(0,0,0,0.035) 0 2px, transparent 2px 26px),
@@ -39,36 +36,25 @@
   }
   .wrap{max-width:920px;margin:0 auto;padding:36px 20px 80px;}
 
-  .topbar{max-width:920px;margin:0 auto;padding:0 0 10px;}
+  .topbar{max-width:920px;margin:0 auto;padding:0 0 10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
   .home-link{
-    display:inline-flex;align-items:center;gap:6px;
-    font-family:var(--font-body);font-weight:600;font-size:13px;
-    color:rgba(231,238,247,0.7);text-decoration:none;
-    padding:7px 14px;border-radius:999px;border:1px solid var(--felt-line);
+    display:inline-flex;align-items:center;gap:6px;font-family:var(--font-body);font-weight:600;font-size:13px;
+    color:rgba(231,238,247,0.7);text-decoration:none;padding:7px 14px;border-radius:999px;border:1px solid var(--felt-line);
     background:rgba(0,0,0,0.15);transition:color .15s, border-color .15s, background .15s;
   }
   .home-link:hover{color:var(--gold);border-color:var(--gold);background:rgba(0,0,0,0.28);}
+  .admin-badge{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-display);font-size:12px;color:var(--ink-dim);}
+  .admin-badge .dot{width:7px;height:7px;border-radius:50%;background:var(--ink-dim);}
+  .admin-badge.on{color:var(--mono);}
+  .admin-badge.on .dot{background:var(--mono);box-shadow:0 0 6px rgba(126,231,135,0.7);}
 
   header.top{text-align:center;margin-bottom:8px;}
-  .eyebrow{
-    font-family:var(--font-body);font-size:12.5px;letter-spacing:0.18em;text-transform:uppercase;
-    color:var(--gold);font-weight:700;
-  }
-  h1{
-    font-family:var(--font-display);font-weight:800;font-size:clamp(30px,5vw,46px);
-    margin:6px 0 6px;color:#fff;letter-spacing:-0.01em;
-  }
-  .sub{color:rgba(231,238,247,0.75);font-size:15px;max-width:520px;margin:0 auto;}
+  .eyebrow{font-family:var(--font-body);font-size:12.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--gold);font-weight:700;}
+  h1{font-family:var(--font-display);font-weight:800;font-size:clamp(28px,5vw,42px);margin:6px 0 6px;color:#fff;letter-spacing:-0.01em;}
+  .sub{color:rgba(231,238,247,0.75);font-size:15px;max-width:540px;margin:0 auto;}
 
-  /* status banner */
-  .banner{
-    max-width:640px;margin:18px auto 0;padding:10px 16px;border-radius:10px;
-    font-size:13px;text-align:center;display:none;
-  }
-  .banner.demo{
-    background:rgba(79,143,219,0.15);border:1px solid rgba(79,143,219,0.4);color:#bfe3ff;
-    display:block;
-  }
+  .banner{max-width:640px;margin:18px auto 0;padding:10px 16px;border-radius:10px;font-size:13px;text-align:center;display:none;}
+  .banner.demo{background:rgba(79,143,219,0.15);border:1px solid rgba(79,143,219,0.4);color:#bfe3ff;display:block;}
 
   .identity-bar{
     display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;
@@ -76,187 +62,103 @@
     background:rgba(0,0,0,0.18);border:1px solid var(--felt-line);
   }
   .identity-bar label{font-size:13px;color:rgba(231,238,247,0.75);font-weight:600;}
-  .identity-bar select{
+  select, input[type=text], input[type=email], input[type=password]{
     font-family:var(--font-body);font-size:14px;color:var(--text-light);
     background:rgba(0,0,0,0.35);border:1px solid var(--felt-line);border-radius:8px;padding:8px 12px;
   }
-  .identity-bar select:focus{outline:1px solid var(--gold);}
-  .identity-status{font-size:12px;color:rgba(231,238,247,0.55);}
-  .identity-status.locked{color:var(--gold);}
+  select:focus, input:focus{outline:1px solid var(--gold);}
 
-  .vote-hint{
-    font-size:12.5px;color:rgba(231,238,247,0.65);margin-top:14px;text-align:center;
-  }
-
-  .modal-backdrop{
-    position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;
-    align-items:center;justify-content:center;padding:20px;z-index:50;
-  }
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;padding:20px;z-index:50;}
   .modal-backdrop.open{display:flex;}
-  .modal{
-    background:var(--card);border:1px solid var(--card-edge);border-radius:14px;
-    padding:26px;max-width:380px;width:100%;color:var(--ink);
-  }
+  .modal{background:var(--card);border:1px solid var(--card-edge);border-radius:14px;padding:26px;max-width:400px;width:100%;color:var(--ink);}
   .modal h3{margin:0 0 6px;font-family:var(--font-display);font-size:19px;}
   .modal p.hint{font-size:12.5px;color:var(--ink-dim);margin:0 0 16px;}
-  .modal input[type=password]{
-    width:100%;font-family:var(--font-body);font-size:15px;padding:10px 12px;
-    border-radius:8px;border:1px solid var(--card-edge);background:var(--felt-2);color:var(--ink);
-  }
-  .modal input[type=password]:focus{outline:1px solid var(--gold);}
+  .modal .field{margin-bottom:12px;display:flex;flex-direction:column;gap:5px;}
+  .modal .field label{font-size:12px;font-family:var(--font-display);color:var(--ink-dim);}
+  .modal .field input{width:100%;}
   .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px;}
-  .btn-modal{
-    font-family:var(--font-body);font-weight:700;font-size:13px;border:none;
-    border-radius:999px;padding:9px 18px;cursor:pointer;
-  }
+  .btn-modal{font-family:var(--font-body);font-weight:700;font-size:13px;border:none;border-radius:999px;padding:9px 18px;cursor:pointer;}
   .btn-modal.primary{background:var(--gold);color:var(--ink);}
   .btn-modal.ghost{background:transparent;color:var(--ink-dim);border:1px solid var(--card-edge);}
   .error-text{color:var(--danger);font-size:12.5px;margin-top:8px;display:none;}
 
-  nav.tabs{
-    display:flex;justify-content:center;gap:10px;margin:28px 0 30px;
-  }
+  nav.tabs{display:flex;justify-content:center;gap:10px;margin:28px 0 30px;flex-wrap:wrap;}
   .tab{
     font-family:var(--font-display);font-weight:600;font-size:14.5px;
     background:rgba(0,0,0,0.2);border:1px solid var(--felt-line);color:var(--text-light);
-    padding:9px 20px;border-radius:999px;cursor:pointer;transition:background .15s, transform .15s;
+    padding:9px 20px;border-radius:999px;cursor:pointer;transition:background .15s;
   }
   .tab:hover{background:rgba(0,0,0,0.32);}
   .tab.active{background:var(--gold);color:var(--ink);border-color:var(--gold);}
 
-  /* ---------- VOTE VIEW ---------- */
-  #vote-view{display:flex;flex-direction:column;align-items:center;}
-
-  .arena{
-    display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:18px;
-    width:100%;max-width:760px;position:relative;
-  }
-  @media (max-width:640px){
-    .arena{grid-template-columns:1fr;gap:14px;}
-    .vs-badge{margin:0 auto;}
-    .box-art{width:104px;height:104px;}
-  }
-
-  .card-btn{
-    background:var(--card);border:1px solid var(--card-edge);border-radius:var(--radius);
-    padding:28px 20px;cursor:pointer;text-align:center;color:var(--ink);
-    box-shadow:0 18px 34px -18px rgba(0,0,0,0.55), inset 0 0 0 6px rgba(47,111,237,0.10);
-    transition:transform .16s ease, box-shadow .16s ease, opacity .2s ease, filter .2s ease;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    min-height:190px;position:relative;
-  }
-  .card-btn:hover{transform:translateY(-4px);box-shadow:0 24px 40px -18px rgba(0,0,0,0.6), inset 0 0 0 6px rgba(47,111,237,0.18);}
-  .card-btn:active{transform:translateY(-1px) scale(0.99);}
-  .card-btn.chosen{outline:3px solid var(--gold);}
-  .card-btn:disabled{opacity:0.3;filter:grayscale(0.5);cursor:not-allowed;}
-  .card-btn:disabled:hover{transform:none;box-shadow:0 18px 34px -18px rgba(0,0,0,0.55), inset 0 0 0 6px rgba(47,111,237,0.10);}
-
-  .arena-lock{
-    position:absolute;inset:-8px;z-index:6;border-radius:20px;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
-    text-align:center;padding:24px;background:rgba(10,23,41,0.82);backdrop-filter:blur(3px);
-    border:1px dashed rgba(143,208,255,0.5);
-  }
-  .arena-lock .arrow{font-size:22px;color:var(--gold);animation:arenaLockBob 1.4s ease-in-out infinite;}
-  .arena-lock .msg{font-family:var(--font-display);font-weight:700;font-size:16px;color:#fff;}
-  .arena-lock .sub{font-size:12.5px;color:rgba(231,238,247,0.7);max-width:260px;}
-  @keyframes arenaLockBob{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
-
-  .identity-bar.needs-select{
-    border-color:var(--gold);animation:identityPulse 1.8s ease-in-out infinite;
-  }
-  @keyframes identityPulse{
-    0%,100%{box-shadow:0 0 0 3px rgba(79,143,219,0.12), 0 0 10px rgba(79,143,219,0.25);}
-    50%{box-shadow:0 0 0 5px rgba(79,143,219,0.22), 0 0 22px rgba(79,143,219,0.45);}
-  }
-  .card-icon{
-    width:56px;height:56px;border-radius:50%;background:var(--wood);color:#fff;
-    display:flex;align-items:center;justify-content:center;font-family:var(--font-display);
-    font-weight:700;font-size:22px;margin-bottom:14px;flex-shrink:0;
-  }
-  .box-art{
-    width:132px;height:132px;border-radius:10px;margin-bottom:14px;flex-shrink:0;
-    background:linear-gradient(100deg, rgba(120,170,220,0.28) 0%, #1c3350 50%, rgba(120,170,220,0.28) 100%);
-    background-size:200% 100%;
-    box-shadow:0 8px 18px -8px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(0,0,0,0.06);
-    object-fit:cover;
-  }
-  .box-art.loading{animation:shimmer 1.3s ease-in-out infinite;}
-  @keyframes shimmer{
-    0%{background-position:200% 0;}
-    100%{background-position:-200% 0;}
-  }
-  .card-name{font-family:var(--font-display);font-weight:700;font-size:19px;line-height:1.25;}
-  .card-hint{font-size:12px;color:var(--ink-dim);margin-top:8px;letter-spacing:0.04em;text-transform:uppercase;}
-
-  .vs-badge{
-    font-family:var(--font-display);font-weight:800;font-size:20px;color:var(--ink);
-    background:var(--gold);width:52px;height:52px;border-radius:50%;
-    display:flex;align-items:center;justify-content:center;flex-shrink:0;
-    box-shadow:0 6px 16px -4px rgba(0,0,0,0.5);
-  }
-
-  .vote-controls{margin-top:26px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:center;}
-  .ghost-btn{
-    font-family:var(--font-body);font-weight:600;font-size:13.5px;color:var(--text-light);
-    background:transparent;border:1px solid rgba(140,190,235,0.3);padding:9px 18px;border-radius:999px;
-    cursor:pointer;transition:border-color .15s, background .15s;
-  }
-  .ghost-btn:hover{border-color:var(--gold);background:rgba(0,0,0,0.15);}
-  .stat-pill{
-    font-size:13px;color:rgba(231,238,247,0.7);font-variant-numeric:tabular-nums;
-  }
-
-  /* ---------- RESULTS VIEW ---------- */
-  #results-view{display:none;}
   .results-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
   .results-head h2{font-family:var(--font-display);font-size:22px;margin:0;color:#fff;}
   .results-meta{font-size:12.5px;color:rgba(231,238,247,0.65);}
+  .empty-state{padding:40px 20px;text-align:center;color:rgba(231,238,247,0.7);font-size:14px;}
 
-  .board{
-    background:rgba(0,0,0,0.18);border:1px solid var(--felt-line);border-radius:var(--radius);
-    overflow:hidden;
+  /* ---- My List ---- */
+  .board{background:rgba(0,0,0,0.18);border:1px solid var(--felt-line);border-radius:var(--radius);overflow:hidden;}
+  .list-row{
+    display:grid;grid-template-columns:36px 1fr auto;align-items:center;gap:12px;
+    padding:12px 16px;border-bottom:1px solid var(--felt-line);
   }
-  .row{
-    display:grid;grid-template-columns:44px 1fr auto auto;align-items:center;gap:14px;
-    padding:13px 18px;border-bottom:1px solid var(--felt-line);
+  .list-row:last-child{border-bottom:none;}
+  .list-row:nth-child(odd){background:rgba(120,170,220,0.04);}
+  .list-rank{font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--gold);text-align:center;}
+  .list-name{font-weight:600;font-size:14.5px;color:#fff;}
+  .list-btns{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;}
+  .mini-btn{
+    font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--ink);
+    background:rgba(120,170,220,0.14);border:1px solid var(--felt-line);border-radius:6px;
+    width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    transition:background .15s;
   }
+  .mini-btn:hover{background:rgba(120,170,220,0.28);}
+  .mini-btn.danger{color:var(--danger);}
+  .mini-btn:disabled{opacity:0.3;cursor:not-allowed;}
+
+  .avail-section{margin-top:22px;}
+  .avail-section h3{font-family:var(--font-display);font-size:14px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:0.06em;margin:0 0 10px;}
+  .avail-row{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:10px 16px;border-bottom:1px solid var(--felt-line);font-size:14px;
+  }
+  .avail-row:last-child{border-bottom:none;}
+  .add-btn{
+    font-family:var(--font-display);font-weight:700;font-size:12px;color:var(--ink);
+    background:var(--wood);border:none;border-radius:6px;padding:6px 12px;cursor:pointer;
+  }
+
+  /* ---- Leaderboard ---- */
+  .row{display:grid;grid-template-columns:44px 1fr auto auto;align-items:center;gap:14px;padding:13px 18px;border-bottom:1px solid var(--felt-line);}
   .row:last-child{border-bottom:none;}
   .row:nth-child(odd){background:rgba(120,170,220,0.04);}
   .rank{font-family:var(--font-display);font-weight:700;font-size:16px;color:rgba(231,238,247,0.55);text-align:center;}
   .rank.medal{font-size:22px;}
   .row-name{font-weight:600;font-size:15px;color:#fff;}
   .row-record{font-size:12px;color:rgba(231,238,247,0.55);white-space:nowrap;}
-  .rating-chip{
-    font-family:var(--font-body);font-weight:700;font-size:13.5px;color:var(--ink);
-    background:var(--gold);padding:5px 11px;border-radius:8px;min-width:56px;text-align:center;
-  }
-  .empty-state{padding:40px 20px;text-align:center;color:rgba(231,238,247,0.7);font-size:14px;}
+  .rating-chip{font-family:var(--font-body);font-weight:700;font-size:13.5px;color:var(--ink);background:var(--gold);padding:5px 11px;border-radius:8px;min-width:56px;text-align:center;}
 
-  /* ---------- USER RANKINGS VIEW ---------- */
-  #users-view{display:none;}
+  /* ---- Players ---- */
   .users-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
   @media (max-width:640px){.users-grid{grid-template-columns:1fr;}}
-  .user-card{
-    background:rgba(0,0,0,0.18);border:1px solid var(--felt-line);border-radius:var(--radius);
-    padding:18px 20px;
-  }
-  .user-card h3{font-family:var(--font-display);font-size:15.5px;color:#fff;margin:0 0 3px;}
-  .user-card .vote-total{font-size:11.5px;color:rgba(231,238,247,0.55);margin-bottom:12px;}
+  .user-card{background:rgba(0,0,0,0.18);border:1px solid var(--felt-line);border-radius:var(--radius);padding:18px 20px;}
+  .user-card h3{font-family:var(--font-display);font-size:15.5px;color:#fff;margin:0 0 10px;}
   .user-top-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px;}
   .user-top-list li{display:flex;align-items:center;gap:10px;font-size:13px;}
-  .user-top-list .u-rank{
-    font-family:var(--font-display);font-weight:700;font-size:11.5px;color:var(--gold);
-    width:16px;flex-shrink:0;
-  }
+  .user-top-list .u-rank{font-family:var(--font-display);font-weight:700;font-size:11.5px;color:var(--gold);width:16px;flex-shrink:0;}
   .user-top-list .u-name{flex:1;color:var(--ink);}
-  .user-top-list .u-count{
-    font-family:var(--font-display);font-size:11px;color:rgba(231,238,247,0.5);flex-shrink:0;
-  }
 
-  footer.pagefoot{
-    text-align:center;margin-top:44px;font-size:12px;color:rgba(231,238,247,0.45);
-  }
+  /* ---- Admin panel ---- */
+  .admin-card{background:rgba(0,0,0,0.18);border:1px solid var(--felt-line);border-radius:var(--radius);padding:20px 22px;margin-top:22px;}
+  .admin-card .section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  .admin-card h2{font-family:var(--font-display);font-size:15px;color:var(--ink-dim);margin:0;text-transform:uppercase;letter-spacing:0.06em;}
+  .btn{font-family:var(--font-body);font-weight:700;font-size:13px;background:var(--gold);color:var(--ink);border:none;border-radius:999px;padding:8px 16px;cursor:pointer;}
+  .btn.ghost{background:transparent;color:var(--ink-dim);border:1px solid var(--card-edge);}
+  .game-admin-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--felt-line);font-size:13.5px;}
+  .game-admin-row:last-child{border-bottom:none;}
+
+  footer.pagefoot{text-align:center;margin-top:44px;font-size:12px;color:rgba(231,238,247,0.45);}
 </style>
 </head>
 <body>
@@ -264,17 +166,20 @@
 
   <div class="topbar">
     <a class="home-link" href="/">← Home</a>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="admin-badge" id="admin-badge"><span class="dot"></span><span id="admin-badge-text">Not signed in</span></span>
+      <button class="btn-modal ghost" id="admin-toggle-btn">Admin</button>
+    </div>
   </div>
 
   <header class="top">
     <div class="eyebrow">czapala.com / boardgames</div>
-    <h1>Boardgame Showdown</h1>
-    <p class="sub">Pick your favorite of two games, over and over. Every vote sharpens the leaderboard for everyone.</p>
+    <h1>Boardgame Rankings</h1>
+    <p class="sub">Rank the games you've played. Everyone's personal list combines into one shared leaderboard.</p>
   </header>
 
   <div id="demo-banner" class="banner demo">
-    Demo mode — this device isn't connected to shared storage yet, so votes here only affect your browser.
-    See the setup comment near the top of this file to connect Firebase and make results shared for all visitors.
+    Demo mode — this device isn't connected to shared storage yet, so changes here only affect your browser.
   </div>
 
   <div class="identity-bar">
@@ -282,29 +187,21 @@
     <select id="identity-select">
       <option value="">Select your name…</option>
     </select>
-    <span class="identity-status" id="identity-status"></span>
   </div>
 
   <nav class="tabs">
-    <button class="tab active" id="tab-vote" onclick="showView('vote')">Vote</button>
+    <button class="tab active" id="tab-mylist" onclick="showView('mylist')">My List</button>
     <button class="tab" id="tab-results" onclick="showView('results')">Leaderboard</button>
-    <button class="tab" id="tab-users" onclick="showView('users')">User Rankings</button>
+    <button class="tab" id="tab-users" onclick="showView('users')">Players</button>
   </nav>
 
-  <!-- VOTE VIEW -->
-  <div id="vote-view">
-    <div class="arena" id="arena">
-      <!-- filled by JS -->
-    </div>
-    <div class="vote-controls">
-      <button class="ghost-btn" id="skip-btn" onclick="newMatchup()">Skip this matchup →</button>
-      <span class="stat-pill" id="vote-count">0 votes cast this session</span>
-    </div>
-    <div class="vote-hint" id="vote-hint" style="display:none;">Pick your name above and enter the group PIN to vote.</div>
+  <!-- MY LIST VIEW -->
+  <div id="mylist-view">
+    <div id="mylist-content"></div>
   </div>
 
   <!-- RESULTS VIEW -->
-  <div id="results-view">
+  <div id="results-view" style="display:none;">
     <div class="results-head">
       <h2>Leaderboard</h2>
       <span class="results-meta" id="results-meta"></span>
@@ -312,61 +209,36 @@
     <div class="board" id="board"></div>
   </div>
 
-  <!-- USER RANKINGS VIEW -->
-  <div id="users-view">
+  <!-- PLAYERS VIEW -->
+  <div id="users-view" style="display:none;">
     <div class="results-head">
-      <h2>User Rankings</h2>
+      <h2>Players</h2>
       <span class="results-meta" id="users-meta"></span>
     </div>
     <div class="users-grid" id="users-board"></div>
   </div>
 
-  <footer class="pagefoot">Ranked by Elo rating, updated live after every vote.</footer>
+  <div id="admin-panel"></div>
+
+  <footer class="pagefoot">Ranked by average points: your #1 gives the most points, your last place the fewest.</footer>
 </div>
 
-<div class="modal-backdrop" id="pin-modal">
+<!-- Admin sign-in modal -->
+<div class="modal-backdrop" id="admin-modal">
   <div class="modal">
-    <h3>Group PIN</h3>
-    <p class="hint">Voting is limited to approved players — enter the group PIN once to unlock it on this device.</p>
-    <input type="password" id="pin-input" inputmode="numeric" placeholder="PIN">
-    <p class="error-text" id="pin-error">Incorrect PIN, try again.</p>
+    <h3>Admin Sign In</h3>
+    <p class="hint">Managing the game list needs the organizer account.</p>
+    <div class="field"><label for="admin-email">Email</label><input type="email" id="admin-email" autocomplete="username"></div>
+    <div class="field"><label for="admin-password">Password</label><input type="password" id="admin-password" autocomplete="current-password"></div>
+    <p class="error-text" id="admin-error">Sign-in failed — check your email and password.</p>
     <div class="modal-actions">
-      <button class="btn-modal ghost" id="pin-cancel">Cancel</button>
-      <button class="btn-modal primary" id="pin-submit">Unlock</button>
+      <button class="btn-modal ghost" id="admin-cancel">Cancel</button>
+      <button class="btn-modal primary" id="admin-submit">Sign In</button>
     </div>
   </div>
 </div>
 
 <script type="module">
-/* =========================================================================
-   SHARED-RESULTS SETUP (do this once, then everyone's votes count together)
-   -------------------------------------------------------------------------
-   1. Go to https://console.firebase.google.com → Create project (free tier
-      is plenty for this).
-   2. In the project, click Build → Firestore Database → Create database
-      (start in "production mode", pick any region).
-   3. In Firestore → Rules, use something like this so the site can read/write
-      only the one collection this app uses:
-
-        rules_version = '2';
-        service cloud.firestore {
-          match /databases/{database}/documents {
-            match /boardgame_elo/{gameId} {
-              allow read: if true;
-              allow write: if request.resource.data.keys().hasOnly(
-                ['name','rating','wins','losses','matches']);
-            }
-          }
-        }
-
-   4. In Project settings → General → Your apps, add a Web app and copy the
-      firebaseConfig object it gives you. Paste it in place of the
-      placeholder below (replace every "REPLACE_ME" value).
-   5. Upload this file to czapala.com/boardgames — that's it, votes will now
-      be shared across every visitor. Until you do this, the app runs in a
-      local "demo mode" (banner shown above) using your browser's storage
-      only, so you can preview and test it safely first.
-   ========================================================================= */
 const firebaseConfig = {
   apiKey: "AIzaSyBDkeQkUkHe05Pdc9s9zzMiL5b8d70K4Ck",
   authDomain: "boardgameranking-72257.firebaseapp.com",
@@ -376,268 +248,179 @@ const firebaseConfig = {
   appId: "1:636811553872:web:02f83707139b1a27cf3555"
 };
 
-const GAMES = ["3 Chapters", "20 Strong: Tanglewoods Red", "Air, Land, & Sea", "Azul", "Bomb Busters", "Captain Flip", "Cascadia", "Castle Combo", "Codenames: Pictures", "Deep Sea Adventure", "dnup", "Dune: Imperium", "Excalibur", "Ezra and Nehemiah", "A Fake Artist Goes to New York", "Faraway", "Flip 7", "Flip 7: With A Vengeance", "Green Team Wins", "Horrified", "Jaipur", "Just One", "Kinfire Delve: Vainglory's Grotto", "Knarr", "The Lord of the Rings: Duel for Middle-earth", "The Lord of the Rings: The Fellowship of the Ring – Trick-Taking Game", "Marvel: Remix", "Marvel United", "Mexican Train", "Muffin Time: Deluxe Edition", "Quacks", "The Quest for El Dorado", "Ra", "Railroad Ink: Deep Blue Edition", "Rainbow", "Rolling Realms", "Sagrada: The Great Facades – Life", "SCOUT", "Sea Salt & Paper", "Skull", "So Clover!", "Space Base", "Splito", "Star Wars: The Deckbuilding Game", "Sushi Go Party!", "Trio", "Tsuro", "Undaunted: Normandy", "Unmatched: Cobble & Fog", "Unmatched: Jurassic Park – InGen vs Raptors", "Unmatched Adventures: Teenage Mutant Ninja Turtles", "UNO Teams!", "The Vale of Eternity", "The White Castle", "Wingspan", "For Sale", "Root", "Splendor"];
+const GAMES_COLLECTION = "games_master";
+const RANKINGS_COLLECTION = "boardgame_rankings";
+
+// The original hardcoded game list, used only as a one-click seed for an empty games_master.
+const SEED_GAMES = ["3 Chapters", "20 Strong: Tanglewoods Red", "Air, Land, & Sea", "Azul", "Bomb Busters", "Captain Flip", "Cascadia", "Castle Combo", "Codenames: Pictures", "Deep Sea Adventure", "dnup", "Dune: Imperium", "Excalibur", "Ezra and Nehemiah", "A Fake Artist Goes to New York", "Faraway", "Flip 7", "Flip 7: With A Vengeance", "Green Team Wins", "Horrified", "Jaipur", "Just One", "Kinfire Delve: Vainglory's Grotto", "Knarr", "The Lord of the Rings: Duel for Middle-earth", "The Lord of the Rings: The Fellowship of the Ring – Trick-Taking Game", "Marvel: Remix", "Marvel United", "Mexican Train", "Muffin Time: Deluxe Edition", "Quacks", "The Quest for El Dorado", "Ra", "Railroad Ink: Deep Blue Edition", "Rainbow", "Rolling Realms", "Sagrada: The Great Facades – Life", "SCOUT", "Sea Salt & Paper", "Skull", "So Clover!", "Space Base", "Splito", "Star Wars: The Deckbuilding Game", "Sushi Go Party!", "Trio", "Tsuro", "Undaunted: Normandy", "Unmatched: Cobble & Fog", "Unmatched: Jurassic Park – InGen vs Raptors", "Unmatched Adventures: Teenage Mutant Ninja Turtles", "UNO Teams!", "The Vale of Eternity", "The White Castle", "Wingspan", "For Sale", "Root", "Splendor"];
 
 const PLAYERS = ["Aaron Le","Alicia Tran","Amy Donald","Angela Duong","Annabelle Tran","Christy Kanya","David Czapala","Diana Vo","Jack Beala","James Donald","Jason Pillay","Jay Yu","Jeremy Lim","Jess Cabral","Jess Mollenbeck","Jojo","Joseph Nebiar","Katie Czapala","Kevin Ing","Krit","Linda Chan","Linda Y","Liz Donald","Monique Duong","Nathaniel Seil","Nguyen Nguyen","Nikki Orkley","Pari P","Sam Poddar","Stasia Zhao","Steph A","Tees","Tennille","Thahn","Thersa Ho","Tim Donald","Tino","Tony Nguyen"];
-const VOTE_PIN_HASH = "0fb2ef77c9f54a0b950bc63a49c1275838e93bd24f21e494fd43e34068ff5d79"; // sha-256 of the PIN, not the PIN itself
-
-async function sha256Hex(text){
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-}
-
-const START_RATING = 1500;
-const K_FACTOR = 32;
 
 function slugify(name){
   return name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
 }
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
 let db = null;
+let auth = null;
 let demoMode = true;
+let isAdminSession = false;
 
-/* ---- storage backends: Firestore if configured, else localStorage ---- */
 async function initStorage(){
-  if (firebaseConfig.apiKey !== "REPLACE_ME") {
-    try {
-      const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
-      const firestore = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-      const app = initializeApp(firebaseConfig);
-      db = firestore.getFirestore(app);
-      window._fs = firestore;
-      demoMode = false;
-    } catch (e) {
-      console.error("Firebase init failed, falling back to demo mode:", e);
-      demoMode = true;
+  try {
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const firestore = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+    const authMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    const app = initializeApp(firebaseConfig);
+    db = firestore.getFirestore(app);
+    window._fs = firestore;
+    auth = authMod.getAuth(app);
+    window._auth = authMod;
+    demoMode = false;
+
+    await new Promise((resolve) => {
+      const unsub = authMod.onAuthStateChanged(auth, (user) => {
+        isAdminSession = !!(user && !user.isAnonymous);
+        updateAdminBadge();
+        unsub();
+        resolve();
+      });
+    });
+    if (!auth.currentUser) {
+      await authMod.signInAnonymously(auth);
     }
+    authMod.onAuthStateChanged(auth, (user) => {
+      isAdminSession = !!(user && !user.isAnonymous);
+      updateAdminBadge();
+      renderCurrentView();
+    });
+  } catch (e) {
+    console.error("Firebase init failed, falling back to demo mode:", e);
+    demoMode = true;
   }
   document.getElementById('demo-banner').style.display = demoMode ? 'block' : 'none';
 }
 
-function localGetAll(){
-  const raw = localStorage.getItem('boardgame_elo_demo');
-  return raw ? JSON.parse(raw) : {};
-}
-function localSaveAll(data){
-  localStorage.setItem('boardgame_elo_demo', JSON.stringify(data));
+function updateAdminBadge(){
+  const badge = document.getElementById('admin-badge');
+  const text = document.getElementById('admin-badge-text');
+  const toggleBtn = document.getElementById('admin-toggle-btn');
+  badge.classList.toggle('on', isAdminSession);
+  text.textContent = isAdminSession ? 'Admin signed in' : 'Not signed in';
+  toggleBtn.textContent = isAdminSession ? 'Sign out' : 'Admin';
 }
 
-async function getAllRatings(){
-  const result = {};
-  GAMES.forEach(g => {
-    result[slugify(g)] = { name: g, rating: START_RATING, wins: 0, losses: 0, matches: 0 };
-  });
+/* ---- local (demo) storage ---- */
+const LOCAL_GAMES = 'boardgame_games_demo';
+const LOCAL_RANKINGS = 'boardgame_rankings_demo';
+function localGet(key, fallback){ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }
+function localSet(key, data){ localStorage.setItem(key, JSON.stringify(data)); }
+
+/* ---------------- games master ---------------- */
+async function getGames(){
   if (!demoMode && db) {
     const { collection, getDocs } = window._fs;
-    const snap = await getDocs(collection(db, 'boardgame_elo'));
-    snap.forEach(doc => { result[doc.id] = { ...result[doc.id], ...doc.data() }; });
-  } else {
-    const stored = localGetAll();
-    Object.keys(stored).forEach(id => { if (result[id]) result[id] = { ...result[id], ...stored[id] }; });
+    const snap = await getDocs(collection(db, GAMES_COLLECTION));
+    const out = {};
+    snap.forEach(d => { out[d.id] = d.data(); });
+    return out;
   }
-  return result;
+  return localGet(LOCAL_GAMES, {});
 }
 
-async function recordVote(winnerName, loserName, voterName){
-  const winnerId = slugify(winnerName);
-  const loserId = slugify(loserName);
-
+async function addGame(name){
+  const id = slugify(name);
   if (!demoMode && db) {
-    const { doc, runTransaction, collection, addDoc } = window._fs;
-    const winnerRef = doc(db, 'boardgame_elo', winnerId);
-    const loserRef = doc(db, 'boardgame_elo', loserId);
-    await runTransaction(db, async (tx) => {
-      const wSnap = await tx.get(winnerRef);
-      const lSnap = await tx.get(loserRef);
-      const w = wSnap.exists() ? wSnap.data() : { name: winnerName, rating: START_RATING, wins: 0, losses: 0, matches: 0 };
-      const l = lSnap.exists() ? lSnap.data() : { name: loserName, rating: START_RATING, wins: 0, losses: 0, matches: 0 };
-      const [newW, newL] = computeElo(w.rating, l.rating);
-      tx.set(winnerRef, { name: winnerName, rating: newW, wins: (w.wins||0)+1, losses: w.losses||0, matches: (w.matches||0)+1 });
-      tx.set(loserRef, { name: loserName, rating: newL, wins: l.wins||0, losses: (l.losses||0)+1, matches: (l.matches||0)+1 });
-    });
-    try {
-      await addDoc(collection(db, 'boardgame_votes'), {
-        voter: voterName, winner: winnerName, loser: loserName, timestamp: Date.now()
-      });
-    } catch (e) {
-      console.warn("Vote log write failed (rankings still recorded):", e);
+    const { doc, setDoc } = window._fs;
+    await setDoc(doc(db, GAMES_COLLECTION, id), { name });
+  } else {
+    const all = localGet(LOCAL_GAMES, {});
+    all[id] = { name };
+    localSet(LOCAL_GAMES, all);
+  }
+}
+
+async function seedGames(){
+  for (const name of SEED_GAMES) { await addGame(name); }
+}
+
+async function removeGame(id){
+  const rankings = await getAllRankings();
+  if (!demoMode && db) {
+    const { doc, deleteDoc, setDoc } = window._fs;
+    await deleteDoc(doc(db, GAMES_COLLECTION, id));
+    for (const uid of Object.keys(rankings)) {
+      const u = rankings[uid];
+      if ((u.order || []).includes(id)) {
+        await setDoc(doc(db, RANKINGS_COLLECTION, uid), { name: u.name, order: u.order.filter(g => g !== id) });
+      }
     }
   } else {
-    const all = localGetAll();
-    const w = all[winnerId] || { name: winnerName, rating: START_RATING, wins: 0, losses: 0, matches: 0 };
-    const l = all[loserId] || { name: loserName, rating: START_RATING, wins: 0, losses: 0, matches: 0 };
-    const [newW, newL] = computeElo(w.rating, l.rating);
-    all[winnerId] = { name: winnerName, rating: newW, wins: (w.wins||0)+1, losses: w.losses||0, matches: (w.matches||0)+1 };
-    all[loserId] = { name: loserName, rating: newL, wins: l.wins||0, losses: (l.losses||0)+1, matches: (l.matches||0)+1 };
-    localSaveAll(all);
-
-    const voteLog = JSON.parse(localStorage.getItem('boardgame_votes_demo') || '[]');
-    voteLog.push({ voter: voterName, winner: winnerName, loser: loserName, timestamp: Date.now() });
-    localStorage.setItem('boardgame_votes_demo', JSON.stringify(voteLog));
+    const all = localGet(LOCAL_GAMES, {});
+    delete all[id];
+    localSet(LOCAL_GAMES, all);
+    const allR = localGet(LOCAL_RANKINGS, {});
+    Object.keys(allR).forEach(uid => { allR[uid].order = (allR[uid].order || []).filter(g => g !== id); });
+    localSet(LOCAL_RANKINGS, allR);
   }
 }
 
-function computeElo(ratingA, ratingB){
-  const expectedA = 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
-  const expectedB = 1 - expectedA;
-  const newA = Math.round(ratingA + K_FACTOR * (1 - expectedA));
-  const newB = Math.round(ratingB + K_FACTOR * (0 - expectedB));
-  return [newA, newB];
-}
-
-async function getAllVotes(){
+/* ---------------- rankings ---------------- */
+async function getAllRankings(){
   if (!demoMode && db) {
     const { collection, getDocs } = window._fs;
-    const snap = await getDocs(collection(db, 'boardgame_votes'));
-    return snap.docs.map(d => d.data());
+    const snap = await getDocs(collection(db, RANKINGS_COLLECTION));
+    const out = {};
+    snap.forEach(d => { out[d.id] = d.data(); });
+    return out;
   }
-  return JSON.parse(localStorage.getItem('boardgame_votes_demo') || '[]');
+  return localGet(LOCAL_RANKINGS, {});
 }
 
-/* =========================================================================
-   BOX ART
-   -------------------------------------------------------------------------
-   Real BoardGameGeek cover images, sourced from your boardgame collection
-   spreadsheet — no live API calls needed for these, so nothing here can be
-   blocked by an ad-blocker or a flaky CORS relay. Games not in this list
-   (a handful not present in that spreadsheet) fall back to a best-effort
-   live BGG search; if that fails too, they just show the initials badge.
-   ========================================================================= */
-const BGG_ART = {
-  "20 Strong: Tanglewoods Red": "https://cf.geekdo-images.com/egIQX7y4E_uxOvWkmpq6QA__original/img/u6VFxVrLh2W4Mcf00W8Uz_Proak=/0x0/filters:format(png)/pic8308903.png",
-  "3 Chapters": "https://cf.geekdo-images.com/es3F2drfUOIVnqsTds3BDQ__original/img/aagzL4ORPemw2xi3FL4575gKYhA=/0x0/filters:format(png)/pic8940639.png",
-  "A Fake Artist Goes to New York": "https://cf.geekdo-images.com/5Q5YHxJeVp6PAhfv5Ct0-g__original/img/yRNioltDOtjrTRXa0HHoTTCWNf8=/0x0/filters:format(png)/pic3678404.png",
-  "Air, Land, & Sea": "https://cf.geekdo-images.com/3wpYeNwO7k_yjpIN7IQwaw__original/img/_qQC98hufgmPn_fwMrP4I0sYKO8=/0x0/filters:format(jpeg)/pic4387681.jpg",
-  "Azul": "https://cf.geekdo-images.com/aPSHJO0d0XOpQR5X-wJonw__original/img/AkbtYVc6xXJF3c9EUrakklcclKw=/0x0/filters:format(png)/pic6973671.png",
-  "Bomb Busters": "https://cf.geekdo-images.com/ECwb6GmH8DZ8GS6sQCJH_g__original/img/RUIb6sfXyk7OMvPKVD4vTGH2IxA=/0x0/filters:format(jpeg)/pic9333820.jpg",
-  "Captain Flip": "https://cf.geekdo-images.com/7vSkMR7exNsU7ZfRgJKodQ__original/img/CEF2zr_yUhqZrc0NP6NnBoXGGPc=/0x0/filters:format(png)/pic7784394.png",
-  "Cascadia": "https://cf.geekdo-images.com/MjeJZfulbsM1DSV3DrGJYA__original/img/B374C04Eip7fmQBGJzgiOTp-jyQ=/0x0/filters:format(jpeg)/pic5100691.jpg",
-  "Castle Combo": "https://cf.geekdo-images.com/rGomBfj0FGrZM-w3h5HFWQ__original/img/XtVFdYXLAxdGOjQOGCkrms-hLUU=/0x0/filters:format(png)/pic8250341.png",
-  "Codenames: Pictures": "https://cf.geekdo-images.com/TGHPcdYEnD3_QzMohEIrNw__original/img/BjCphUnm_GLYJ2I1VAkxqNiNTWk=/0x0/filters:format(png)/pic9206059.png",
-  "Deep Sea Adventure": "https://cf.geekdo-images.com/owyKXaa5SPB2HG9F_MueNQ__original/img/gOmpUB3hM7Ap9o-kDsV8ZVBVYXA=/0x0/filters:format(png)/pic3169827.png",
-  "Dune: Imperium": "https://cf.geekdo-images.com/PhjygpWSo-0labGrPBMyyg__original/img/mZzaBAEEJpMlHWWmC0R6Su0OibQ=/0x0/filters:format(jpeg)/pic5666597.jpg",
-  "Excalibur": "https://cf.geekdo-images.com/CKNRCpGY0SwKG-W3Dw4WAQ__original/img/4r65BHX_xKwPJkveHKjfxoVJ1EI=/0x0/filters:format(png)/pic8922385.png",
-  "Ezra and Nehemiah": "https://cf.geekdo-images.com/MVflz8gmtK1DZy49E-Llog__original/img/4yClnRxvCH8fGd59XzyHYokt0WU=/0x0/filters:format(jpeg)/pic7474410.jpg",
-  "Faraway": "https://cf.geekdo-images.com/u1cwi9BWSKsPxSkVO0BzbA__original/img/jTY6_PRF6FrUgInfMajzobVy0S8=/0x0/filters:format(png)/pic7570101.png",
-  "Flip 7": "https://cf.geekdo-images.com/YrQxEB9Ef0kQorRApzG5vQ__original/img/hK6k-x_GYfooemrkkRuF0bTvKxE=/0x0/filters:format(jpeg)/pic8780246.jpg",
-  "Flip 7: With A Vengeance": "https://cf.geekdo-images.com/ZW3pPCcG069GkXkk7HSHlg__original/img/A-MS4ZUWEhiaDBSKChOq50Qcdnw=/0x0/filters:format(jpeg)/pic9385115.jpg",
-  "Green Team Wins": "https://cf.geekdo-images.com/CnbTdFLjxjuvX_HXgIDYGw__original/img/LGP4yQrZC_67Z2cerjV1ph7ggwQ=/0x0/filters:format(png)/pic6691185.png",
-  "Horrified": "https://cf.geekdo-images.com/SoClIcwjDo_iZs0idVikDw__original/img/TEprFkOM3G_u2HnUvh05WITeXbg=/0x0/filters:format(jpeg)/pic4848330.jpg",
-  "Jaipur": "https://cf.geekdo-images.com/uPdgk0oG8eKM3ICJPXLBoA__original/img/weITvqx3u9juRVrSiJME3uIFno8=/0x0/filters:format(jpeg)/pic7438445.jpg",
-  "Just One": "https://cf.geekdo-images.com/74haNunMBn85beBi-yIKwA__original/img/hA22qL6nZxchA8FMTIfhLMcI53I=/0x0/filters:format(png)/pic8669313.png",
-  "Kinfire Delve: Vainglory's Grotto": "https://cf.geekdo-images.com/io5dPH2ImA5uqoLsO7K1GA__original/img/YSHX304i8sCqhyvW6wk9Xy8Y1go=/0x0/filters:format(jpeg)/pic7570975.jpg",
-  "Knarr": "https://cf.geekdo-images.com/PaYRAlezMGDlLt8LXmR_sQ__original/img/9nndYkVCIDsSHM3CmuiLk-0WCHk=/0x0/filters:format(png)/pic7857343.png",
-  "Marvel United": "https://cf.geekdo-images.com/-19XPXmTn9QyyvqwpcFkBw__original/img/zgZcNusSm7mFMP3N6MJvJRe_gKY=/0x0/filters:format(jpeg)/pic5231006.jpg",
-  "Marvel: Remix": "https://cf.geekdo-images.com/1EilwFEoi4ZLKX7aqw2mmQ__original/img/6WBhVvFaJ17bkDv605GQUuQLNGk=/0x0/filters:format(jpeg)/pic6778570.jpg",
-  "Mexican Train": "https://cf.geekdo-images.com/VFt5NUiI65V-pYP-e7uNeg__original/img/u5lKg9Z14NFo4no6BeWNaP1MjZA=/0x0/filters:format(jpeg)/pic117397.jpg",
-  "Muffin Time: Deluxe Edition": "https://cf.geekdo-images.com/ua_zGBqm4feqbX2CiT_G4A__original/img/wrkDZxZTMgqhF-SI3CSy1Cr5Qxk=/0x0/filters:format(jpeg)/pic8591639.jpg",
-  "Quacks": "https://cf.geekdo-images.com/B1bLRWzTASZ-xx9NoAE79A__original/img/HulJk6gFzp_bxl0wzc2XEMq8NLM=/0x0/filters:format(png)/pic8780293.png",
-  "Ra": "https://cf.geekdo-images.com/KvS_jPz9_-XpTXEPq_-5oA__original/img/Zs0PYIDNZS_PwZ3pZpZ9wuq-A10=/0x0/filters:format(png)/pic7468483.png",
-  "Railroad Ink: Deep Blue Edition": "https://cf.geekdo-images.com/x3hjEgkxZE9M96o6wgj6Tw__original/img/aLU9rLTBaZhBK_U6YMUY8mmJnrM=/0x0/filters:format(png)/pic4097632.png",
-  "Rainbow": "https://cf.geekdo-images.com/g0PpVy1f-jAMIsk68RH9Rw__original/img/W0FuPyAn1AzpSYVlExRcSvDYPS4=/0x0/filters:format(jpeg)/pic8046725.jpg",
-  "Rolling Realms": "https://cf.geekdo-images.com/5TZ5YfDo_r9vNNvWTl_pzw__original/img/YxcHzKCiiRq68K7Fd3qsUp-xhaE=/0x0/filters:format(jpeg)/pic6313647.jpg",
-  "SCOUT": "https://cf.geekdo-images.com/cf0xxkevbwTGF3VUZymKjg__original/img/vkElrRCPJxy7Q3TH9olpq20egA4=/0x0/filters:format(png)/pic6398727.png",
-  "Sagrada: The Great Facades – Life": "https://cf.geekdo-images.com/2iN5JmoyBCKTjdrXrjj8IQ__original/img/ASqMO6OWQtknHMZ_BUqUJb9Teqs=/0x0/filters:format(jpeg)/pic5408962.jpg",
-  "Sea Salt & Paper": "https://cf.geekdo-images.com/CIh_rXKoRw9z8K0PJxT8nQ__original/img/AX2wyHhWFgVh5OArXAjVHY-nFZg=/0x0/filters:format(jpeg)/pic6973911.jpg",
-  "Skull": "https://cf.geekdo-images.com/GVbKORueiHezUaLfVZKlfQ__original/img/_IQj5yyk9dqRo1x15a9u4qoMDGE=/0x0/filters:format(jpeg)/pic9315848.jpg",
-  "So Clover!": "https://cf.geekdo-images.com/8oipK9-ivkn53h7L5U2Yfg__original/img/KtvdQ2mT4ShhUaJekT9IvuOCvv8=/0x0/filters:format(png)/pic6588069.png",
-  "Space Base": "https://cf.geekdo-images.com/MHhQxXVjiaa6C-04nGiIWw__original/img/QyWen0FVOKD_4wf7Na7fdsMTjis=/0x0/filters:format(jpeg)/pic6640638.jpg",
-  "Splito": "https://cf.geekdo-images.com/PevBE3LiC6DrcPkvE0tX4w__original/img/SXYK-wpi512KEsqHzPKmmdm4_Fc=/0x0/filters:format(jpeg)/pic6795700.jpg",
-  "Star Wars: The Deckbuilding Game": "https://cf.geekdo-images.com/U6scsOGrPtVym4nCLaYjyw__original/img/bPFq87JbA919A2vxks_PFF2DwsY=/0x0/filters:format(png)/pic7387735.png",
-  "Sushi Go Party!": "https://cf.geekdo-images.com/2f9uTicUSXkdPp2Yks6zFw__original/img/WQcFmlhYBMIp8f6gNNVhnnue1w4=/0x0/filters:format(jpeg)/pic5885689.jpg",
-  "The Lord of the Rings: Duel for Middle-earth": "https://cf.geekdo-images.com/EybxJlUc9rz7F7HVFLqsdw__original/img/Ts4M5eOW38r2oTvJmkx0uwNodv4=/0x0/filters:format(jpeg)/pic8378939.jpg",
-  "The Lord of the Rings: The Fellowship of the Ring – Trick-Taking Game": "https://cf.geekdo-images.com/uC4N_3kQdoHefNPesAHCzQ__original/img/ohKFXmrxtaOPqJyiIMaABIy-WjU=/0x0/filters:format(png)/pic8437787.png",
-  "The Quest for El Dorado": "https://cf.geekdo-images.com/b5VyYjNfAxJ4Z-Dx2UWlqg__original/img/-GqQ0EOfg9e3yFVpKgJbPdlunso=/0x0/filters:format(jpeg)/pic7945692.jpg",
-  "The Vale of Eternity": "https://cf.geekdo-images.com/yWwckUmFXuGXxp41-vFaVQ__original/img/FHotXyNFHc3pC2fcu5i8HjrVis4=/0x0/filters:format(png)/pic7461472.png",
-  "The White Castle": "https://cf.geekdo-images.com/qXT1U-nFh9PE8ujfdmI7dA__original/img/jzmifZJ0Sg2Js7hmQjzX7bEHVBY=/0x0/filters:format(jpeg)/pic7754663.jpg",
-  "Trio": "https://cf.geekdo-images.com/QmlhseBwD6MtTt_g0NdrVw__original/img/4cRVqPt1y53zynnAqEdbdMPTKTw=/0x0/filters:format(png)/pic7879015.png",
-  "Tsuro": "https://cf.geekdo-images.com/oXAXvh381-Z1TXWHdu4dOg__original/img/u6hhvnFtD427vLh7vcy-_n9HC_w=/0x0/filters:format(jpeg)/pic4645041.jpg",
-  "UNO Teams!": "https://cf.geekdo-images.com/LllUytksmvlCgbEjHfD2wQ__original/img/zN8Sos_4DtBZHyCkI99mvVGsTCQ=/0x0/filters:format(jpeg)/pic8397387.jpg",
-  "Undaunted: Normandy": "https://cf.geekdo-images.com/iCd6hMGDzsQ_UXh00iKsJA__original/img/QhbQ2AMud-_H0fliiSIvc0dowOU=/0x0/filters:format(jpeg)/pic4602347.jpg",
-  "Unmatched Adventures: Teenage Mutant Ninja Turtles": "https://cf.geekdo-images.com/MInoTd4lhv0tBwTePOZ3DQ__original/img/dDZRsSuoQ4o1MyJ4Ywyh-iLJbKM=/0x0/filters:format(jpeg)/pic9553060.jpg",
-  "Unmatched: Cobble & Fog": "https://cf.geekdo-images.com/iyIO6udRfIn0xM1rIxyO2g__original/img/PZBFIDjPGZddto7n5F5gP_2slUA=/0x0/filters:format(jpeg)/pic5056685.jpg",
-  "Unmatched: Jurassic Park – InGen vs Raptors": "https://cf.geekdo-images.com/qCMsj-DHIvGcynErPfiClQ__original/img/Pzl6PGk03m0SLKGObrtie3P-LHw=/0x0/filters:format(jpeg)/pic4854152.jpg",
-  "Wingspan": "https://cf.geekdo-images.com/yLZJCVLlIx4c7eJEWUNJ7w__itemrep@2x/img/veohwKEtFpERbDq7xGMggHqLKX8=/fit-in/492x600/filters:strip_icc()/pic4458123.jpg",
-  "dnup": "https://cf.geekdo-images.com/mhNZFwA0kAS0gX2Tjh0pJw__original/img/Jn6VRUdLjUQx7mVwyupAnUPxKFk=/0x0/filters:format(jpeg)/pic9490614.jpg",
-  "For Sale": "https://cf.geekdo-images.com/dJh9HkZC346NgPTAicJq_A__itemrep@2x/img/wvMylNRaOq0xUo7IEZQ2MFY1T-8=/fit-in/492x600/filters:strip_icc()/pic1513085.jpg",
-  "Root":"https://cf.geekdo-images.com/JUAUWaVUzeBgzirhZNmHHw__itemrep@2x/img/ws8Cu10dtH9Dk0bzuc4xHmIKDEc=/fit-in/492x600/filters:strip_icc()/pic4254509.jpg",
-  "Splendor":"https://cf.geekdo-images.com/vNFe4JkhKAERzi4T0Ntwpw__itemrep@2x/img/qDjpnPQ6u7oROPU9dS3c_opVIFc=/fit-in/492x600/filters:strip_icc()/pic8234167.png"
-};
-
-const BGG_CACHE_KEY = "boardgame_bgg_art_cache_v2";
-const bggCache = JSON.parse(localStorage.getItem(BGG_CACHE_KEY) || "{}");
-const artListeners = {}; // gameName -> [callbacks]
-const CORS_PROXY = "https://api.allorigins.win/raw?url=";
-
-function saveBggCache(){
-  localStorage.setItem(BGG_CACHE_KEY, JSON.stringify(bggCache));
-}
-
-function notifyArt(gameName, url){
-  (artListeners[gameName] || []).forEach(cb => cb(url));
-  delete artListeners[gameName];
-}
-
-async function fetchBggArt(gameName){
-  if (BGG_ART[gameName]) return BGG_ART[gameName];
-  if (Object.prototype.hasOwnProperty.call(bggCache, gameName)) return bggCache[gameName];
-  // Best-effort only: games not covered by BGG_ART above will try a live
-  // search, but quietly fall back to the initials badge if it doesn't work.
-  try {
-    const searchUrl = `https://boardgamegeek.com/xmlapi2/search?type=boardgame&query=${encodeURIComponent(gameName)}`;
-    const searchRes = await fetch(CORS_PROXY + encodeURIComponent(searchUrl));
-    const searchXml = new DOMParser().parseFromString(await searchRes.text(), "text/xml");
-    const items = Array.from(searchXml.getElementsByTagName("item"));
-    if (!items.length) { bggCache[gameName] = null; saveBggCache(); return null; }
-
-    const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g,'');
-    const best = items.find(it => {
-      const nameEl = it.getElementsByTagName("name")[0];
-      return nameEl && norm(nameEl.getAttribute("value")) === norm(gameName);
-    }) || items[0];
-    const id = best.getAttribute("id");
-
-    const thingUrl = `https://boardgamegeek.com/xmlapi2/thing?id=${id}`;
-    const thingRes = await fetch(CORS_PROXY + encodeURIComponent(thingUrl));
-    const thingXml = new DOMParser().parseFromString(await thingRes.text(), "text/xml");
-    const imgEl = thingXml.getElementsByTagName("image")[0] || thingXml.getElementsByTagName("thumbnail")[0];
-    const url = imgEl ? imgEl.textContent.trim() : null;
-
-    bggCache[gameName] = url;
-    saveBggCache();
-    return url;
-  } catch (e) {
-    console.warn("BGG art lookup failed for", gameName, e);
-    return null; // falls back to the initials badge, no error shown to visitor
+async function saveUserOrder(userId, name, order){
+  if (!demoMode && db) {
+    const { doc, setDoc } = window._fs;
+    await setDoc(doc(db, RANKINGS_COLLECTION, userId), { name, order });
+  } else {
+    const all = localGet(LOCAL_RANKINGS, {});
+    all[userId] = { name, order };
+    localSet(LOCAL_RANKINGS, all);
   }
 }
 
-function getArt(gameName, callback){
-  if (BGG_ART[gameName]) {
-    callback(BGG_ART[gameName]);
-    return;
-  }
-  if (Object.prototype.hasOwnProperty.call(bggCache, gameName)) {
-    callback(bggCache[gameName]);
-    return;
-  }
-  if (!artListeners[gameName]) {
-    artListeners[gameName] = [];
-    fetchBggArt(gameName).then(url => notifyArt(gameName, url));
-  }
-  artListeners[gameName].push(callback);
+/* ---------------- scoring ---------------- */
+function computeLeaderboard(gamesMap, rankingsMap){
+  const totals = {};
+  Object.keys(gamesMap).forEach(id => totals[id] = { sum: 0, count: 0 });
+  Object.values(rankingsMap).forEach(u => {
+    const order = (u.order || []).filter(gid => gamesMap[gid]);
+    const L = order.length;
+    order.forEach((gid, i) => {
+      totals[gid].sum += (L - i);
+      totals[gid].count += 1;
+    });
+  });
+  const rows = Object.keys(gamesMap).map(id => {
+    const t = totals[id];
+    const avg = t.count > 0 ? t.sum / t.count : null;
+    return { id, name: gamesMap[id].name, avg, count: t.count };
+  });
+  rows.sort((a, b) => {
+    if (a.avg === null && b.avg === null) return a.name.localeCompare(b.name);
+    if (a.avg === null) return 1;
+    if (b.avg === null) return -1;
+    if (b.avg !== a.avg) return b.avg - a.avg;
+    return a.name.localeCompare(b.name);
+  });
+  return rows;
 }
 
-/* ---------------- identity + PIN gate ---------------- */
+/* ---------------- identity ---------------- */
 const IDENTITY_KEY = 'boardgame_identity';
-const PIN_OK_KEY = 'boardgame_pin_ok';
-
 function getIdentity(){ return localStorage.getItem(IDENTITY_KEY) || ""; }
 function setIdentity(name){ localStorage.setItem(IDENTITY_KEY, name); }
-function isPinUnlocked(){ return localStorage.getItem(PIN_OK_KEY) === 'true'; }
-function setPinUnlocked(){ localStorage.setItem(PIN_OK_KEY, 'true'); }
-
-function canVote(){ return !!getIdentity() && isPinUnlocked(); }
 
 function populateIdentitySelect(){
   const sel = document.getElementById('identity-select');
@@ -647,249 +430,237 @@ function populateIdentitySelect(){
     sel.appendChild(opt);
   });
   sel.value = getIdentity();
-  updateIdentityStatus();
-
-  sel.addEventListener('change', () => {
-    setIdentity(sel.value);
-    if (sel.value && !isPinUnlocked()) {
-      openPinModal();
-    } else {
-      updateIdentityStatus();
-      renderArena();
-    }
-  });
+  sel.addEventListener('change', () => { setIdentity(sel.value); renderCurrentView(); });
 }
 
-function updateIdentityStatus(){
-  const status = document.getElementById('identity-status');
-  if (!getIdentity()) {
-    status.textContent = '';
-    status.classList.remove('locked');
-  } else if (!isPinUnlocked()) {
-    status.textContent = 'PIN required to vote';
-    status.classList.add('locked');
-  } else {
-    status.textContent = 'Ready to vote';
-    status.classList.remove('locked');
+/* ---------------- My List view ---------------- */
+async function renderMyList(){
+  const el = document.getElementById('mylist-content');
+  const identity = getIdentity();
+  if (!identity) {
+    el.innerHTML = `<div class="empty-state">Select your name above to build your list.</div>`;
+    return;
   }
-}
+  const games = await getGames();
+  if (Object.keys(games).length === 0) {
+    el.innerHTML = `<div class="empty-state">No games added yet. ${isAdminSession ? 'Use the admin panel below to add games.' : 'Ask the admin to add games.'}</div>`;
+    return;
+  }
+  const rankings = await getAllRankings();
+  const userId = slugify(identity);
+  let mine = rankings[userId];
 
-function openPinModal(){
-  const modal = document.getElementById('pin-modal');
-  document.getElementById('pin-input').value = '';
-  document.getElementById('pin-error').style.display = 'none';
-  modal.classList.add('open');
-  document.getElementById('pin-input').focus();
-}
+  if (!mine) {
+    const board = computeLeaderboard(games, rankings);
+    mine = { name: identity, order: board.map(r => r.id) };
+    await saveUserOrder(userId, identity, mine.order);
+  }
 
-function setupPinModal(){
-  const modal = document.getElementById('pin-modal');
-  document.getElementById('pin-cancel').addEventListener('click', () => {
-    modal.classList.remove('open');
-    updateIdentityStatus();
-  });
-  const submit = async () => {
-    const val = document.getElementById('pin-input').value.trim();
-    const hash = await sha256Hex(val);
-    if (hash === VOTE_PIN_HASH) {
-      setPinUnlocked();
-      modal.classList.remove('open');
-      updateIdentityStatus();
-      renderArena();
-    } else {
-      document.getElementById('pin-error').style.display = 'block';
-    }
-  };
-  document.getElementById('pin-submit').addEventListener('click', submit);
-  document.getElementById('pin-input').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') submit();
-  });
-}
+  const order = (mine.order || []).filter(gid => games[gid]); // drop stale ids
+  const available = Object.keys(games).filter(gid => !order.includes(gid)).sort((a,b) => games[a].name.localeCompare(games[b].name));
 
-/* ---------------- matchup / voting UI ---------------- */
-let current = [];
-let lastPairKey = "";
-let sessionVotes = 0;
-
-function pickTwo(){
-  let a, b, key;
-  do {
-    a = GAMES[Math.floor(Math.random() * GAMES.length)];
-    do { b = GAMES[Math.floor(Math.random() * GAMES.length)]; } while (b === a);
-    key = [a,b].sort().join('|');
-  } while (key === lastPairKey && GAMES.length > 2);
-  lastPairKey = key;
-  return [a, b];
-}
-
-function initials(name){
-  const words = name.replace(/[:!.,–&]/g,' ').split(/\s+/).filter(Boolean);
-  const stop = new Set(['the','a','an','of','with','to','in']);
-  const sig = words.filter(w => !stop.has(w.toLowerCase()));
-  const pick = (sig.length ? sig : words).slice(0,2);
-  return pick.map(w => w[0].toUpperCase()).join('');
-}
-
-function artPlaceholder(name, side){
-  const blank = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
-  return `<img id="art-${side}" class="box-art loading" src="${blank}" alt="" />`;
-}
-
-function renderArena(){
-  const [a, b] = current;
-  const locked = !canVote();
-  const lockOverlay = locked ? `
-    <div class="arena-lock">
-      <div class="arrow">↑</div>
-      <div class="msg">Select your name above to vote</div>
-      <div class="sub">${!getIdentity() ? "Then enter the group PIN once to unlock voting on this device." : "Enter the group PIN to unlock voting on this device."}</div>
+  const rows = order.map((gid, i) => `
+    <div class="list-row">
+      <div class="list-rank">${i + 1}</div>
+      <div class="list-name">${escapeHtml(games[gid].name)}</div>
+      <div class="list-btns">
+        <button class="mini-btn" data-action="top" data-id="${gid}" ${i === 0 ? 'disabled' : ''} title="Move to top">⤒</button>
+        <button class="mini-btn" data-action="up" data-id="${gid}" ${i === 0 ? 'disabled' : ''} title="Move up">▲</button>
+        <button class="mini-btn" data-action="down" data-id="${gid}" ${i === order.length - 1 ? 'disabled' : ''} title="Move down">▼</button>
+        <button class="mini-btn" data-action="bottom" data-id="${gid}" ${i === order.length - 1 ? 'disabled' : ''} title="Move to bottom">⤓</button>
+        <button class="mini-btn danger" data-action="remove" data-id="${gid}" title="Remove from your list">✕</button>
+      </div>
     </div>
-  ` : '';
-  document.getElementById('arena').innerHTML = `
-    ${lockOverlay}
-    <button class="card-btn" onclick="vote(0)" ${locked ? 'disabled' : ''}>
-      ${artPlaceholder(a,0)}
-      <div class="card-icon" id="fallback-0" style="display:none">${initials(a)}</div>
-      <div class="card-name">${a}</div>
-      <div class="card-hint">Vote for this</div>
-    </button>
-    <div class="vs-badge">VS</div>
-    <button class="card-btn" onclick="vote(1)" ${locked ? 'disabled' : ''}>
-      ${artPlaceholder(b,1)}
-      <div class="card-icon" id="fallback-1" style="display:none">${initials(b)}</div>
-      <div class="card-name">${b}</div>
-      <div class="card-hint">Vote for this</div>
-    </button>
-  `;
-  document.getElementById('vote-hint').style.display = 'none';
-  document.getElementById('identity-select').closest('.identity-bar').classList.toggle('needs-select', !getIdentity());
-  loadArtInto(0, a);
-  loadArtInto(1, b);
-}
+  `).join('');
 
-function loadArtInto(side, gameName){
-  const img = document.getElementById(`art-${side}`);
-  const fallback = document.getElementById(`fallback-${side}`);
-  getArt(gameName, (url) => {
-    if (!img || !img.isConnected) return; // matchup already moved on
-    if (url) {
-      img.src = url;
-      img.classList.remove('loading');
-      img.onerror = () => { img.style.display = 'none'; fallback.style.display = 'flex'; };
-    } else {
-      img.style.display = 'none';
-      fallback.style.display = 'flex';
-    }
+  const availRows = available.map(gid => `
+    <div class="avail-row">
+      <span>${escapeHtml(games[gid].name)}</span>
+      <button class="add-btn" data-action="add" data-id="${gid}">+ Add</button>
+    </div>
+  `).join('');
+
+  el.innerHTML = `
+    <div class="board">${rows || '<div class="empty-state">Your list is empty — add games below.</div>'}</div>
+    <div class="avail-section">
+      <h3>Not yet ranked</h3>
+      <div class="board">${availRows || '<div class="empty-state">Every game is on your list.</div>'}</div>
+    </div>
+  `;
+
+  el.querySelectorAll('[data-action]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const action = btn.dataset.action;
+      const gid = btn.dataset.id;
+      let newOrder = order.slice();
+      const idx = newOrder.indexOf(gid);
+      if (action === 'up' && idx > 0) { [newOrder[idx-1], newOrder[idx]] = [newOrder[idx], newOrder[idx-1]]; }
+      else if (action === 'down' && idx < newOrder.length - 1) { [newOrder[idx+1], newOrder[idx]] = [newOrder[idx], newOrder[idx+1]]; }
+      else if (action === 'top' && idx > 0) { newOrder.splice(idx, 1); newOrder.unshift(gid); }
+      else if (action === 'bottom' && idx < newOrder.length - 1) { newOrder.splice(idx, 1); newOrder.push(gid); }
+      else if (action === 'remove') { newOrder.splice(idx, 1); }
+      else if (action === 'add') { newOrder.push(gid); }
+      else { return; }
+      await saveUserOrder(userId, identity, newOrder);
+      renderMyList();
+    });
   });
 }
 
-window.newMatchup = function(){
-  current = pickTwo();
-  renderArena();
-};
-
-window.vote = async function(winnerIndex){
-  if (!canVote()) {
-    if (!getIdentity()) {
-      document.getElementById('identity-select').focus();
-    } else {
-      openPinModal();
-    }
-    return;
-  }
-
-  const winner = current[winnerIndex];
-  const loser = current[winnerIndex === 0 ? 1 : 0];
-  const btns = document.querySelectorAll('.card-btn');
-  btns[winnerIndex].classList.add('chosen');
-  btns.forEach(b => b.disabled = true);
-
-  await recordVote(winner, loser, getIdentity());
-  sessionVotes++;
-  document.getElementById('vote-count').textContent = `${sessionVotes} vote${sessionVotes===1?'':'s'} cast this session`;
-
-  setTimeout(() => { newMatchup(); }, 260);
-};
-
-/* ---------------- results / leaderboard ---------------- */
+/* ---------------- Leaderboard view ---------------- */
 async function renderResults(){
-  const all = await getAllRatings();
-  const list = Object.values(all).sort((x,y) => y.rating - x.rating);
-  const totalMatches = list.reduce((sum,g) => sum + (g.matches||0), 0) / 2;
-  document.getElementById('results-meta').textContent = `${Math.round(totalMatches)} matchup${Math.round(totalMatches)===1?'':'s'} voted on so far`;
+  const games = await getGames();
+  const rankings = await getAllRankings();
+  const rows = computeLeaderboard(games, rankings);
+  const ranked = rows.filter(r => r.avg !== null);
+  const voterCount = Object.keys(rankings).length;
+  document.getElementById('results-meta').textContent = `${voterCount} player${voterCount === 1 ? '' : 's'} have ranked games`;
 
-  const medals = ['🥇','🥈','🥉'];
   const board = document.getElementById('board');
-  if (totalMatches === 0) {
-    board.innerHTML = `<div class="empty-state">No votes yet — be the first! Head to the Vote tab.</div>`;
+  if (ranked.length === 0) {
+    board.innerHTML = `<div class="empty-state">No one has ranked any games yet — head to My List.</div>`;
     return;
   }
-  board.innerHTML = list.map((g, i) => `
+  const medals = ['🥇','🥈','🥉'];
+  board.innerHTML = ranked.map((g, i) => `
     <div class="row">
-      <div class="rank ${i<3 ? 'medal' : ''}">${i<3 ? medals[i] : i+1}</div>
-      <div class="row-name">${g.name}</div>
-      <div class="row-record">${g.wins||0}W – ${g.losses||0}L</div>
-      <div class="rating-chip">${g.rating}</div>
+      <div class="rank ${i < 3 ? 'medal' : ''}">${i < 3 ? medals[i] : i + 1}</div>
+      <div class="row-name">${escapeHtml(g.name)}</div>
+      <div class="row-record">${g.count} rater${g.count === 1 ? '' : 's'}</div>
+      <div class="rating-chip">${g.avg.toFixed(1)}</div>
     </div>
   `).join('');
 }
 
-window.showView = function(which){
-  document.getElementById('vote-view').style.display = which === 'vote' ? 'flex' : 'none';
-  document.getElementById('results-view').style.display = which === 'results' ? 'block' : 'none';
-  document.getElementById('users-view').style.display = which === 'users' ? 'block' : 'none';
-  document.getElementById('tab-vote').classList.toggle('active', which === 'vote');
-  document.getElementById('tab-results').classList.toggle('active', which === 'results');
-  document.getElementById('tab-users').classList.toggle('active', which === 'users');
-  if (which === 'results') renderResults();
-  if (which === 'users') renderUserRankings();
-};
-
-/* ---------------- user rankings ---------------- */
-async function renderUserRankings(){
-  const votes = await getAllVotes();
-
-  const byVoter = {};
-  votes.forEach(v => {
-    if (!v.voter || !v.winner) return;
-    if (!byVoter[v.voter]) byVoter[v.voter] = {};
-    byVoter[v.voter][v.winner] = (byVoter[v.voter][v.winner] || 0) + 1;
-  });
-
-  const voters = Object.keys(byVoter).sort((a,b) => a.localeCompare(b));
-  document.getElementById('users-meta').textContent =
-    `${voters.length} player${voters.length===1?'':'s'} have voted`;
+/* ---------------- Players view ---------------- */
+async function renderPlayers(){
+  const games = await getGames();
+  const rankings = await getAllRankings();
+  const users = Object.values(rankings).sort((a, b) => a.name.localeCompare(b.name));
+  document.getElementById('users-meta').textContent = `${users.length} player${users.length === 1 ? '' : 's'}`;
 
   const board = document.getElementById('users-board');
-  if (voters.length === 0) {
-    board.innerHTML = `<div class="empty-state">No votes yet — be the first! Head to the Vote tab.</div>`;
+  if (users.length === 0) {
+    board.innerHTML = `<div class="empty-state">No one has ranked games yet.</div>`;
     return;
   }
-
-  board.innerHTML = voters.map(name => {
-    const counts = byVoter[name];
-    const top5 = Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0,5);
-    const totalVotes = Object.values(counts).reduce((sum,c) => sum + c, 0);
+  board.innerHTML = users.map(u => {
+    const top5 = (u.order || []).filter(gid => games[gid]).slice(0, 5);
     return `
       <div class="user-card">
-        <h3>${name}</h3>
-        <div class="vote-total">${totalVotes} vote${totalVotes===1?'':'s'} cast</div>
+        <h3>${escapeHtml(u.name)}</h3>
         <ol class="user-top-list">
-          ${top5.map(([game,count],i) => `
-            <li><span class="u-rank">${i+1}</span><span class="u-name">${game}</span><span class="u-count">${count}×</span></li>
-          `).join('')}
+          ${top5.map((gid, i) => `<li><span class="u-rank">${i + 1}</span><span class="u-name">${escapeHtml(games[gid].name)}</span></li>`).join('') || '<li class="u-name">No games ranked yet</li>'}
         </ol>
       </div>
     `;
   }).join('');
 }
 
+/* ---------------- Admin panel (game management) ---------------- */
+async function renderAdminPanel(){
+  const el = document.getElementById('admin-panel');
+  if (!isAdminSession) { el.innerHTML = ''; return; }
+  const games = await getGames();
+  const rows = Object.keys(games).sort((a,b) => games[a].name.localeCompare(games[b].name)).map(id => `
+    <div class="game-admin-row">
+      <span>${escapeHtml(games[id].name)}</span>
+      <button class="mini-btn danger" data-remove="${id}" title="Remove game">✕</button>
+    </div>
+  `).join('');
+
+  el.innerHTML = `
+    <div class="admin-card">
+      <div class="section-head">
+        <h2>Manage Games</h2>
+        <div style="display:flex;gap:8px;">
+          ${Object.keys(games).length === 0 ? '<button class="btn ghost" id="seed-btn">Seed original 57</button>' : ''}
+          <button class="btn" id="add-game-btn">+ Add game</button>
+        </div>
+      </div>
+      ${rows || '<div class="empty-state">No games yet.</div>'}
+    </div>
+  `;
+
+  const seedBtn = document.getElementById('seed-btn');
+  if (seedBtn) seedBtn.addEventListener('click', async () => {
+    seedBtn.disabled = true; seedBtn.textContent = 'Seeding…';
+    await seedGames();
+    renderCurrentView();
+  });
+  document.getElementById('add-game-btn').addEventListener('click', async () => {
+    const name = prompt('Game name:');
+    if (name && name.trim()) {
+      await addGame(name.trim());
+      renderCurrentView();
+    }
+  });
+  el.querySelectorAll('[data-remove]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm(`Remove "${games[btn.dataset.remove].name}" from every list?`)) return;
+      await removeGame(btn.dataset.remove);
+      renderCurrentView();
+    });
+  });
+}
+
+/* ---------------- view switching ---------------- */
+let currentView = 'mylist';
+window.showView = function(which){
+  currentView = which;
+  document.getElementById('mylist-view').style.display = which === 'mylist' ? 'block' : 'none';
+  document.getElementById('results-view').style.display = which === 'results' ? 'block' : 'none';
+  document.getElementById('users-view').style.display = which === 'users' ? 'block' : 'none';
+  document.getElementById('tab-mylist').classList.toggle('active', which === 'mylist');
+  document.getElementById('tab-results').classList.toggle('active', which === 'results');
+  document.getElementById('tab-users').classList.toggle('active', which === 'users');
+  renderCurrentView();
+};
+
+function renderCurrentView(){
+  if (currentView === 'mylist') renderMyList();
+  else if (currentView === 'results') renderResults();
+  else if (currentView === 'users') renderPlayers();
+  renderAdminPanel();
+}
+
+/* ---------------- admin sign-in ---------------- */
+const adminModal = document.getElementById('admin-modal');
+document.getElementById('admin-toggle-btn').addEventListener('click', async () => {
+  if (isAdminSession) {
+    await window._auth.signOut(auth);
+    renderCurrentView();
+    return;
+  }
+  document.getElementById('admin-email').value = '';
+  document.getElementById('admin-password').value = '';
+  document.getElementById('admin-error').style.display = 'none';
+  adminModal.classList.add('open');
+  document.getElementById('admin-email').focus();
+});
+document.getElementById('admin-cancel').addEventListener('click', () => adminModal.classList.remove('open'));
+document.getElementById('admin-submit').addEventListener('click', async () => {
+  const email = document.getElementById('admin-email').value.trim();
+  const password = document.getElementById('admin-password').value;
+  try {
+    await window._auth.signInWithEmailAndPassword(auth, email, password);
+    adminModal.classList.remove('open');
+    renderCurrentView();
+  } catch (e) {
+    console.warn("Admin sign-in failed:", e);
+    document.getElementById('admin-error').style.display = 'block';
+  }
+});
+document.getElementById('admin-password').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('admin-submit').click();
+});
+
 /* ---------------- boot ---------------- */
 (async function boot(){
+  updateAdminBadge();
   populateIdentitySelect();
-  setupPinModal();
   await initStorage();
-  newMatchup();
+  renderCurrentView();
 })();
 </script>
 </body>

@@ -1,0 +1,759 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prayer Requests — czapala.com</title>
+<meta name="description" content="Submit prayer requests and have them shared out to the group over WhatsApp.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a1729;
+    --panel:#0f2138;
+    --panel-2:#14283f;
+    --line:rgba(120,170,220,0.14);
+    --text:#e7eef7;
+    --text-dim:#7590ab;
+    --mono:#7ee787;
+    --gold:#dda631;
+    --danger:#e0645a;
+    --accent:#4f8fdb;
+    --accent-bright:#8fd0ff;
+    --font-mono:'JetBrains Mono',monospace;
+    --font-body:'Inter',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;min-height:100vh;background:var(--bg);color:var(--text);
+    font-family:var(--font-body);
+    background-image:
+      linear-gradient(rgba(120,170,220,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120,170,220,0.05) 1px, transparent 1px);
+    background-size:36px 36px;
+  }
+  .wrap{max-width:720px;margin:0 auto;padding:28px 20px 80px;}
+
+  .topbar{padding:0 0 10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+  .home-link{
+    display:inline-flex;align-items:center;gap:6px;
+    font-family:var(--font-body);font-weight:600;font-size:13px;
+    color:var(--text-dim);text-decoration:none;
+    padding:7px 14px;border-radius:999px;border:1px solid var(--line);
+    background:rgba(255,255,255,0.02);transition:color .15s, border-color .15s, background .15s;
+  }
+  .home-link:hover{color:var(--accent-bright);border-color:var(--accent-bright);background:rgba(120,170,220,0.08);}
+
+  .admin-badge{
+    display:inline-flex;align-items:center;gap:8px;
+    font-family:var(--font-mono);font-size:12px;color:var(--text-dim);
+  }
+  .admin-badge .dot{width:7px;height:7px;border-radius:50%;background:var(--text-dim);}
+  .admin-badge.on .dot{background:var(--mono);box-shadow:0 0 6px rgba(126,231,135,0.7);}
+  .admin-badge.on{color:var(--mono);}
+
+  header.top{text-align:center;margin:20px 0 8px;}
+  .eyebrow{
+    font-family:var(--font-mono);font-size:12px;color:var(--mono);
+    letter-spacing:0.18em;text-transform:uppercase;margin-bottom:10px;
+  }
+  h1{font-size:clamp(26px,5vw,38px);margin:0 0 10px;color:#fff;letter-spacing:-0.01em;}
+  .sub{color:var(--text-dim);font-size:14.5px;max-width:480px;margin:0 auto;}
+
+  .identity-bar{
+    display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;
+    margin:26px 0 6px;padding:14px 18px;border-radius:12px;
+    background:var(--panel);border:1px solid var(--line);
+  }
+  .identity-bar label{font-size:13px;color:var(--text-dim);font-family:var(--font-mono);}
+  select, input[type=text], input[type=tel], input[type=email], input[type=password], textarea{
+    font-family:var(--font-body);font-size:14px;color:var(--text);
+    background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 12px;
+  }
+  select:focus, input:focus, textarea:focus{outline:1px solid var(--accent);}
+
+  .section-head{display:flex;justify-content:space-between;align-items:center;margin:34px 0 14px;}
+  .section-head h2{font-family:var(--font-mono);font-size:14px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dim);margin:0;}
+  .btn{
+    font-family:var(--font-body);font-weight:700;font-size:13px;
+    background:var(--accent);color:#fff;border:none;border-radius:999px;
+    padding:9px 18px;cursor:pointer;transition:transform .12s, box-shadow .12s;
+  }
+  .btn:hover{transform:translateY(-1px);}
+  .btn.ghost{background:transparent;color:var(--text-dim);border:1px solid var(--line);}
+  .btn.ghost:hover{color:var(--accent-bright);border-color:var(--accent-bright);}
+  .btn.small{padding:6px 14px;font-size:12.5px;}
+  .btn.danger{background:var(--danger);}
+  .btn:disabled{opacity:0.45;cursor:not-allowed;transform:none;}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin-bottom:18px;}
+  .empty-state{padding:34px 20px;text-align:center;color:var(--text-dim);font-size:14px;}
+
+  .attendee-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;}
+  @media (max-width:480px){.attendee-grid{grid-template-columns:1fr;}}
+  .attendee-chip{
+    display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:9px;
+    border:1px solid var(--line);background:rgba(255,255,255,0.02);font-size:13.5px;
+    cursor:pointer;transition:border-color .15s, background .15s;
+  }
+  .attendee-chip.checked{border-color:var(--mono);background:rgba(126,231,135,0.1);color:var(--mono);}
+  .attendee-chip input{accent-color:var(--mono);}
+  .attendee-chip.locked{cursor:not-allowed;opacity:0.55;}
+  .attendee-count{font-family:var(--font-mono);font-size:12px;color:var(--text-dim);margin-left:8px;}
+
+  .req-form .field{margin-bottom:12px;display:flex;flex-direction:column;gap:5px;}
+  .req-form label{font-size:12px;font-family:var(--font-mono);color:var(--text-dim);}
+  .req-form select, .req-form textarea{width:100%;}
+  .req-list{margin-top:16px;border-top:1px solid var(--line);padding-top:12px;}
+  .req-row{padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13.5px;}
+  .req-row:last-child{border-bottom:none;}
+  .req-name{color:var(--accent-bright);font-weight:600;}
+  .req-text{color:var(--text);margin-top:2px;}
+  .no-req{color:var(--text-dim);opacity:0.7;font-size:13px;}
+
+  .assign-block{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line);}
+  .assign-block:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+  .assign-name{font-weight:700;color:#fff;margin-bottom:6px;}
+  .assign-reqs{font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:10px;}
+  .wa-link{
+    display:inline-flex;align-items:center;gap:6px;
+    font-family:var(--font-mono);font-size:12.5px;font-weight:700;
+    background:#25d366;color:#04220f;text-decoration:none;
+    padding:8px 14px;border-radius:999px;
+  }
+
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;
+    align-items:center;justify-content:center;padding:20px;z-index:50;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{
+    background:var(--panel-2);border:1px solid var(--line);border-radius:14px;
+    padding:26px;max-width:420px;width:100%;
+  }
+  .modal h3{margin:0 0 6px;font-size:17px;color:#fff;}
+  .modal p.hint{font-size:12.5px;color:var(--text-dim);margin:0 0 16px;}
+  .modal .field{margin-bottom:12px;display:flex;flex-direction:column;gap:5px;}
+  .modal .field label{font-size:12px;font-family:var(--font-mono);color:var(--text-dim);}
+  .modal .field select, .modal .field input{width:100%;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+  .error-text{color:var(--danger);font-size:12.5px;margin-top:6px;display:none;}
+
+  .member-row{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13.5px;}
+  .member-row .mname{flex:1;}
+  .member-row .mphone{color:var(--text-dim);font-family:var(--font-mono);font-size:12px;}
+
+  .banner{
+    max-width:100%;margin:18px auto 0;padding:10px 16px;border-radius:10px;
+    font-size:13px;text-align:center;display:none;
+  }
+  .banner.demo{background:rgba(79,143,219,0.15);border:1px solid rgba(79,143,219,0.4);color:#bfe3ff;display:block;}
+
+  footer.pagefoot{text-align:center;margin-top:44px;font-size:12px;color:var(--text-dim);opacity:0.7;}
+  footer.pagefoot a{color:var(--accent-bright);text-decoration:none;border-bottom:1px solid rgba(143,208,255,0.3);padding-bottom:1px;}
+  footer.pagefoot a:hover{border-color:var(--accent-bright);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <a class="home-link" href="/">← Home</a>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="admin-badge" id="admin-badge"><span class="dot"></span><span id="admin-badge-text">Not signed in</span></span>
+      <button class="btn ghost small" id="admin-toggle-btn">Admin</button>
+    </div>
+  </div>
+
+  <header class="top">
+    <div class="eyebrow">czapala.com / prayer requests</div>
+    <h1>Prayer Requests</h1>
+    <p class="sub">Mark who's here, add prayer requests, and they'll be split evenly among the group to send over WhatsApp.</p>
+  </header>
+
+  <div id="demo-banner" class="banner demo">
+    Demo mode — shared storage isn't connected on this device, so this only affects your browser.
+  </div>
+
+  <div class="identity-bar">
+    <label for="identity-select">You are:</label>
+    <select id="identity-select">
+      <option value="">Select your name…</option>
+    </select>
+  </div>
+
+  <div id="main-content"></div>
+
+  <footer class="pagefoot">Requests are shared with names attached. · <a href="mailto:david@czapala.com">david@czapala.com</a></footer>
+</div>
+
+<!-- Admin sign-in modal -->
+<div class="modal-backdrop" id="admin-modal">
+  <div class="modal">
+    <h3>Admin Sign In</h3>
+    <p class="hint">Starting/closing a meeting and managing members needs the organizer account.</p>
+    <div class="field">
+      <label for="admin-email">Email</label>
+      <input type="email" id="admin-email" autocomplete="username">
+    </div>
+    <div class="field">
+      <label for="admin-password">Password</label>
+      <input type="password" id="admin-password" autocomplete="current-password">
+    </div>
+    <p class="error-text" id="admin-error">Sign-in failed — check your email and password.</p>
+    <div class="modal-actions">
+      <button class="btn ghost" id="admin-cancel">Cancel</button>
+      <button class="btn" id="admin-submit">Sign In</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add member modal -->
+<div class="modal-backdrop" id="member-modal">
+  <div class="modal">
+    <h3>Add Member</h3>
+    <p class="hint">WhatsApp number should include country code, digits only (e.g. 61412345678).</p>
+    <div class="field">
+      <label for="mem-name">Name</label>
+      <input type="text" id="mem-name" placeholder="e.g. Jane Smith">
+    </div>
+    <div class="field">
+      <label for="mem-phone">WhatsApp number</label>
+      <input type="tel" id="mem-phone" placeholder="61412345678">
+    </div>
+    <p class="error-text" id="member-error">Please fill in a name and a valid number.</p>
+    <div class="modal-actions">
+      <button class="btn ghost" id="member-cancel">Cancel</button>
+      <button class="btn" id="member-submit">Add</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+/* Reuses the same Firebase project as /boardgames and /gamenight. */
+const firebaseConfig = {
+  apiKey: "AIzaSyBDkeQkUkHe05Pdc9s9zzMiL5b8d70K4Ck",
+  authDomain: "boardgameranking-72257.firebaseapp.com",
+  projectId: "boardgameranking-72257",
+  storageBucket: "boardgameranking-72257.firebasestorage.app",
+  messagingSenderId: "636811553872",
+  appId: "1:636811553872:web:02f83707139b1a27cf3555"
+};
+
+const MEMBERS_PUBLIC = "prayer_members_public";
+const MEMBERS_PRIVATE = "prayer_members_private";
+const MEETING_COLLECTION = "prayer_meetings";
+const MEETING_DOC = "current";
+
+let db = null;
+let auth = null;
+let demoMode = true;
+let isAdminSession = false;
+
+/* ---------------- Firebase + auth boot ---------------- */
+async function initStorage(){
+  try {
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const firestore = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+    const authMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    const app = initializeApp(firebaseConfig);
+    db = firestore.getFirestore(app);
+    window._fs = firestore;
+    auth = authMod.getAuth(app);
+    window._auth = authMod;
+    demoMode = false;
+
+    await new Promise((resolve) => {
+      const unsub = authMod.onAuthStateChanged(auth, (user) => {
+        isAdminSession = !!(user && !user.isAnonymous);
+        updateAdminBadge();
+        unsub();
+        resolve();
+      });
+    });
+    if (!auth.currentUser) {
+      await authMod.signInAnonymously(auth);
+    }
+    authMod.onAuthStateChanged(auth, (user) => {
+      isAdminSession = !!(user && !user.isAnonymous);
+      updateAdminBadge();
+      renderMain();
+    });
+  } catch (e) {
+    console.error("Firebase init failed, falling back to demo mode:", e);
+    demoMode = true;
+  }
+  document.getElementById('demo-banner').style.display = demoMode ? 'block' : 'none';
+}
+
+function updateAdminBadge(){
+  const badge = document.getElementById('admin-badge');
+  const text = document.getElementById('admin-badge-text');
+  const toggleBtn = document.getElementById('admin-toggle-btn');
+  badge.classList.toggle('on', isAdminSession);
+  text.textContent = isAdminSession ? 'Admin signed in' : 'Not signed in';
+  toggleBtn.textContent = isAdminSession ? 'Sign out' : 'Admin';
+}
+
+/* ---- local (demo) storage ---- */
+const LOCAL_MEMBERS_PUB = 'prayer_members_public_demo';
+const LOCAL_MEMBERS_PRIV = 'prayer_members_private_demo';
+const LOCAL_MEETING = 'prayer_meeting_demo';
+function localGet(key, fallback){
+  const raw = localStorage.getItem(key);
+  return raw ? JSON.parse(raw) : fallback;
+}
+function localSet(key, data){ localStorage.setItem(key, JSON.stringify(data)); }
+
+function newId(){ return 'id_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function slug(name){ return name.trim().toLowerCase().replace(/[^a-z0-9]+/g,'-'); }
+
+/* ---------------- members (public: name, private: phone) ---------------- */
+async function getPublicMembers(){
+  if (!demoMode && db) {
+    const { collection, getDocs } = window._fs;
+    const snap = await getDocs(collection(db, MEMBERS_PUBLIC));
+    const out = {};
+    snap.forEach(d => { out[d.id] = d.data(); });
+    return out;
+  }
+  return localGet(LOCAL_MEMBERS_PUB, {});
+}
+
+async function getPrivateMembers(){
+  // Only succeeds for the admin — Firestore rules reject this read for anyone else.
+  if (!demoMode && db) {
+    try {
+      const { collection, getDocs } = window._fs;
+      const snap = await getDocs(collection(db, MEMBERS_PRIVATE));
+      const out = {};
+      snap.forEach(d => { out[d.id] = d.data(); });
+      return out;
+    } catch (e) {
+      console.warn("Private member read failed (expected unless signed in as admin):", e);
+      return {};
+    }
+  }
+  return localGet(LOCAL_MEMBERS_PRIV, {});
+}
+
+async function addMember(name, phone){
+  const id = slug(name);
+  if (!demoMode && db) {
+    const { doc, setDoc } = window._fs;
+    await setDoc(doc(db, MEMBERS_PUBLIC, id), { name });
+    await setDoc(doc(db, MEMBERS_PRIVATE, id), { phone });
+  } else {
+    const pub = localGet(LOCAL_MEMBERS_PUB, {});
+    const priv = localGet(LOCAL_MEMBERS_PRIV, {});
+    pub[id] = { name };
+    priv[id] = { phone };
+    localSet(LOCAL_MEMBERS_PUB, pub);
+    localSet(LOCAL_MEMBERS_PRIV, priv);
+  }
+}
+
+async function removeMember(id){
+  if (!demoMode && db) {
+    const { doc, deleteDoc } = window._fs;
+    await deleteDoc(doc(db, MEMBERS_PUBLIC, id));
+    await deleteDoc(doc(db, MEMBERS_PRIVATE, id));
+  } else {
+    const pub = localGet(LOCAL_MEMBERS_PUB, {});
+    const priv = localGet(LOCAL_MEMBERS_PRIV, {});
+    delete pub[id]; delete priv[id];
+    localSet(LOCAL_MEMBERS_PUB, pub);
+    localSet(LOCAL_MEMBERS_PRIV, priv);
+  }
+}
+
+/* ---------------- meeting ---------------- */
+async function getMeeting(){
+  if (!demoMode && db) {
+    const { doc, getDoc } = window._fs;
+    const snap = await getDoc(doc(db, MEETING_COLLECTION, MEETING_DOC));
+    return snap.exists() ? snap.data() : null;
+  }
+  return localGet(LOCAL_MEETING, null);
+}
+
+async function saveMeeting(data){
+  if (!demoMode && db) {
+    const { doc, setDoc } = window._fs;
+    await setDoc(doc(db, MEETING_COLLECTION, MEETING_DOC), data);
+  } else {
+    localSet(LOCAL_MEETING, data);
+  }
+}
+
+async function startMeeting(){
+  await saveMeeting({ status: 'open', createdAt: Date.now(), attendees: [], requests: [], assignments: null });
+}
+
+async function toggleAttendee(name){
+  const m = await getMeeting();
+  if (!m || m.status !== 'open') return;
+  const set = new Set(m.attendees || []);
+  if (set.has(name)) set.delete(name); else set.add(name);
+  m.attendees = Array.from(set);
+  await saveMeeting(m);
+}
+
+async function addRequest(name, text){
+  const m = await getMeeting();
+  if (!m || m.status !== 'open') return;
+  m.requests = m.requests || [];
+  m.requests.push({ id: newId(), name, text, ts: Date.now() });
+  await saveMeeting(m);
+}
+
+function shuffle(arr){
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function buildAssignments(requests, attendees){
+  const order = shuffle(attendees);
+  const assignments = {};
+  order.forEach(a => assignments[a] = []);
+  const shuffledReqs = shuffle(requests);
+  let ptr = 0;
+  for (const req of shuffledReqs) {
+    let tries = 0;
+    while (order[ptr % order.length] === req.name && tries < order.length) {
+      ptr++; tries++;
+    }
+    const target = order[ptr % order.length];
+    assignments[target].push(req.id);
+    ptr++;
+  }
+  return assignments;
+}
+
+async function closeAndAssign(){
+  const m = await getMeeting();
+  if (!m || m.status !== 'open') return;
+  const assignments = buildAssignments(m.requests || [], m.attendees || []);
+  m.status = 'closed';
+  m.assignments = assignments;
+  await saveMeeting(m);
+}
+
+/* ---------------- identity ---------------- */
+const IDENTITY_KEY = 'prayer_identity';
+function getIdentity(){ return localStorage.getItem(IDENTITY_KEY) || ""; }
+function setIdentity(name){ localStorage.setItem(IDENTITY_KEY, name); }
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------------- rendering ---------------- */
+let publicMembersCache = {};  // id -> {name}
+let privateMembersCache = {}; // id -> {phone}  (empty unless admin)
+let meetingCache = null;
+
+function memberNames(){
+  return Object.values(publicMembersCache).map(m => m.name).sort();
+}
+function memberIdByName(name){
+  return Object.keys(publicMembersCache).find(id => publicMembersCache[id].name === name);
+}
+
+function populateIdentitySelect(){
+  const sel = document.getElementById('identity-select');
+  sel.innerHTML = '<option value="">Select your name…</option>';
+  memberNames().forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  sel.value = getIdentity();
+  sel.onchange = () => { setIdentity(sel.value); renderMain(); };
+}
+
+async function renderMain(){
+  publicMembersCache = await getPublicMembers();
+  privateMembersCache = isAdminSession ? await getPrivateMembers() : {};
+  meetingCache = await getMeeting();
+  populateIdentitySelect();
+  const el = document.getElementById('main-content');
+  const identity = getIdentity();
+
+  if (Object.keys(publicMembersCache).length === 0) {
+    el.innerHTML = `<div class="card empty-state">No members added yet. Tap <strong>Admin</strong> above to sign in and add members.</div>`;
+    renderAdminMemberPanel();
+    return;
+  }
+
+  if (!meetingCache) {
+    el.innerHTML = `
+      <div class="card empty-state">
+        No active meeting.<br>
+        <button class="btn" id="start-meeting-btn" style="margin-top:14px;">+ Start New Meeting</button>
+      </div>`;
+    document.getElementById('start-meeting-btn').onclick = () => requireAdmin(async () => {
+      await startMeeting();
+      renderMain();
+    });
+  } else if (meetingCache.status === 'open') {
+    el.innerHTML = renderOpenMeeting(identity);
+    attachOpenHandlers(identity);
+  } else if (meetingCache.status === 'closed') {
+    el.innerHTML = renderClosedMeeting();
+    attachClosedHandlers();
+  }
+
+  renderAdminMemberPanel();
+}
+
+function renderOpenMeeting(identity){
+  const attendees = meetingCache.attendees || [];
+  const requests = meetingCache.requests || [];
+  const names = memberNames();
+
+  const chips = names.map(name => {
+    const checked = attendees.includes(name);
+    const isMine = identity === name;
+    const canToggle = isMine || isAdminSession;
+    return `
+      <label class="attendee-chip ${checked ? 'checked' : ''} ${canToggle ? '' : 'locked'}" data-name="${escapeHtml(name)}">
+        <input type="checkbox" ${checked ? 'checked' : ''} ${canToggle ? '' : 'disabled'} data-action="toggle-attendee" data-name="${escapeHtml(name)}">
+        ${escapeHtml(name)}
+      </label>`;
+  }).join('');
+
+  const reqOptions = attendees.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+
+  const reqRows = requests.length
+    ? requests.map(r => `
+        <div class="req-row">
+          <div class="req-name">${escapeHtml(r.name)}</div>
+          <div class="req-text">${escapeHtml(r.text)}</div>
+        </div>`).join('')
+    : `<div class="no-req">No requests submitted yet.</div>`;
+
+  return `
+    <div class="card">
+      <div class="section-head" style="margin-top:0;">
+        <h2>Who's here <span class="attendee-count">${attendees.length} attending</span></h2>
+      </div>
+      <div class="attendee-grid">${chips}</div>
+    </div>
+
+    <div class="card">
+      <div class="section-head" style="margin-top:0;">
+        <h2>Submit a request</h2>
+      </div>
+      ${attendees.length === 0 ? `<div class="no-req">Mark attendees above before submitting requests.</div>` : `
+      <div class="req-form">
+        <div class="field">
+          <label for="req-name">Your name</label>
+          <select id="req-name">
+            <option value="">Select…</option>
+            ${reqOptions}
+          </select>
+        </div>
+        <div class="field">
+          <label for="req-text">Prayer request</label>
+          <textarea id="req-text" rows="3" placeholder="What would you like the group to pray for?"></textarea>
+        </div>
+        <button class="btn" id="submit-req-btn">Submit</button>
+      </div>`}
+      <div class="req-list">${reqRows}</div>
+    </div>
+
+    <div class="card">
+      <button class="btn" id="close-meeting-btn" ${requests.length === 0 || attendees.length < 2 ? 'disabled' : ''}>
+        Close &amp; Split Requests
+      </button>
+      ${attendees.length < 2 ? '<p class="no-req" style="margin-top:10px;">Need at least 2 attendees.</p>' : ''}
+    </div>
+  `;
+}
+
+function attachOpenHandlers(identity){
+  document.querySelectorAll('[data-action="toggle-attendee"]').forEach(cb => {
+    cb.addEventListener('change', async () => {
+      const name = cb.dataset.name;
+      if (name !== identity && !isAdminSession) { renderMain(); return; }
+      await toggleAttendee(name);
+      renderMain();
+    });
+  });
+  const submitBtn = document.getElementById('submit-req-btn');
+  if (submitBtn) submitBtn.addEventListener('click', async () => {
+    const nameSel = document.getElementById('req-name');
+    const textEl = document.getElementById('req-text');
+    const name = nameSel.value;
+    const text = textEl.value.trim();
+    if (!name || !text) return;
+    await addRequest(name, text);
+    renderMain();
+  });
+  const closeBtn = document.getElementById('close-meeting-btn');
+  if (closeBtn) closeBtn.addEventListener('click', () => requireAdmin(async () => {
+    await closeAndAssign();
+    renderMain();
+  }));
+}
+
+function renderClosedMeeting(){
+  if (!isAdminSession) {
+    return `
+      <div class="card empty-state">
+        Requests have been split among attendees.<br>
+        Tap <strong>Admin</strong> above and sign in to view WhatsApp send links.
+      </div>`;
+  }
+  const requests = meetingCache.requests || [];
+  const byId = Object.fromEntries(requests.map(r => [r.id, r]));
+  const assignments = meetingCache.assignments || {};
+
+  const blocks = Object.keys(assignments).sort().map(name => {
+    const reqIds = assignments[name];
+    const reqs = reqIds.map(id => byId[id]).filter(Boolean);
+    const message = `🙏 Prayer requests for you to pray for:\n\n` +
+      reqs.map((r, i) => `${i + 1}. ${r.name}: ${r.text}`).join('\n');
+    const memberId = memberIdByName(name);
+    const phone = memberId && privateMembersCache[memberId] ? (privateMembersCache[memberId].phone || '').replace(/[^0-9]/g, '') : '';
+    const waLink = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}` : null;
+
+    return `
+      <div class="assign-block">
+        <div class="assign-name">${escapeHtml(name)} <span class="attendee-count">${reqs.length} request${reqs.length === 1 ? '' : 's'}</span></div>
+        <div class="assign-reqs">${reqs.map(r => escapeHtml(r.name) + ': ' + escapeHtml(r.text)).join('<br>')}</div>
+        ${waLink
+          ? `<a class="wa-link" href="${waLink}" target="_blank" rel="noopener">Open WhatsApp →</a>`
+          : `<span class="no-req">No phone number on file for ${escapeHtml(name)}.</span>`}
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="card">
+      <div class="section-head" style="margin-top:0;"><h2>Send to attendees</h2></div>
+      ${blocks || '<div class="no-req">No assignments.</div>'}
+    </div>
+    <div class="card">
+      <button class="btn ghost" id="new-meeting-btn">+ Start New Meeting</button>
+    </div>
+  `;
+}
+
+function attachClosedHandlers(){
+  const btn = document.getElementById('new-meeting-btn');
+  if (btn) btn.addEventListener('click', () => requireAdmin(async () => {
+    await startMeeting();
+    renderMain();
+  }));
+}
+
+/* ---------------- admin member management ---------------- */
+function renderAdminMemberPanel(){
+  let panel = document.getElementById('admin-members-panel');
+  if (!isAdminSession) {
+    if (panel) panel.remove();
+    return;
+  }
+  const rows = Object.keys(publicMembersCache).sort((a,b) => publicMembersCache[a].name.localeCompare(publicMembersCache[b].name))
+    .map(id => `
+      <div class="member-row">
+        <span class="mname">${escapeHtml(publicMembersCache[id].name)}</span>
+        <span class="mphone">${escapeHtml(privateMembersCache[id] ? privateMembersCache[id].phone : '—')}</span>
+        <button class="btn ghost small" data-action="remove-member" data-id="${id}">Remove</button>
+      </div>`).join('');
+
+  const html = `
+    <div class="card" id="admin-members-panel">
+      <div class="section-head" style="margin-top:0;">
+        <h2>Members</h2>
+        <button class="btn small" id="add-member-btn">+ Add</button>
+      </div>
+      ${rows || '<div class="no-req">No members yet.</div>'}
+    </div>`;
+
+  if (panel) panel.outerHTML = html; else document.getElementById('main-content').insertAdjacentHTML('beforeend', html);
+
+  document.getElementById('add-member-btn').addEventListener('click', () => {
+    document.getElementById('mem-name').value = '';
+    document.getElementById('mem-phone').value = '';
+    document.getElementById('member-error').style.display = 'none';
+    document.getElementById('member-modal').classList.add('open');
+  });
+  document.querySelectorAll('[data-action="remove-member"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await removeMember(btn.dataset.id);
+      renderMain();
+    });
+  });
+}
+
+/* ---------------- admin sign-in gate ---------------- */
+const adminModal = document.getElementById('admin-modal');
+let pendingAction = null;
+
+function requireAdmin(action){
+  if (isAdminSession) { action(); return; }
+  pendingAction = action;
+  document.getElementById('admin-email').value = '';
+  document.getElementById('admin-password').value = '';
+  document.getElementById('admin-error').style.display = 'none';
+  adminModal.classList.add('open');
+  document.getElementById('admin-email').focus();
+}
+
+document.getElementById('admin-toggle-btn').addEventListener('click', async () => {
+  if (isAdminSession) {
+    await window._auth.signOut(auth);
+    renderMain();
+    return;
+  }
+  requireAdmin(() => { renderMain(); });
+});
+
+document.getElementById('admin-cancel').addEventListener('click', () => adminModal.classList.remove('open'));
+document.getElementById('admin-submit').addEventListener('click', async () => {
+  const email = document.getElementById('admin-email').value.trim();
+  const password = document.getElementById('admin-password').value;
+  try {
+    await window._auth.signInWithEmailAndPassword(auth, email, password);
+    adminModal.classList.remove('open');
+    const action = pendingAction; pendingAction = null;
+    if (action) action();
+  } catch (e) {
+    console.warn("Admin sign-in failed:", e);
+    document.getElementById('admin-error').style.display = 'block';
+  }
+});
+document.getElementById('admin-password').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('admin-submit').click();
+});
+
+/* ---------------- member modal ---------------- */
+document.getElementById('member-cancel').addEventListener('click', () => document.getElementById('member-modal').classList.remove('open'));
+document.getElementById('member-submit').addEventListener('click', async () => {
+  const name = document.getElementById('mem-name').value.trim();
+  const phone = document.getElementById('mem-phone').value.trim().replace(/[^0-9]/g, '');
+  if (!name || phone.length < 8) {
+    document.getElementById('member-error').style.display = 'block';
+    return;
+  }
+  await addMember(name, phone);
+  document.getElementById('member-modal').classList.remove('open');
+  renderMain();
+});
+
+/* ---------------- boot ---------------- */
+(async function boot(){
+  updateAdminBadge();
+  await initStorage();
+  await renderMain();
+})();
+</script>
+</body>
+</html>

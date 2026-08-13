@@ -114,6 +114,8 @@
   .rank-input::-webkit-outer-spin-button, .rank-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
   .rank-input:focus{outline:1px solid var(--gold);border-color:var(--gold);}
   .list-name{font-weight:600;font-size:14.5px;color:#fff;}
+  .game-thumb{width:32px;height:32px;border-radius:5px;object-fit:cover;flex-shrink:0;background:rgba(120,170,220,0.12);}
+  .name-with-art{display:flex;align-items:center;gap:10px;}
   .list-btns{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;}
   .mini-btn{
     font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--ink);
@@ -383,12 +385,41 @@ async function addGame(name){
   const id = slugify(name);
   if (!demoMode && db) {
     const { doc, setDoc } = window._fs;
-    await setDoc(doc(db, GAMES_COLLECTION, id), { name });
+    await setDoc(doc(db, GAMES_COLLECTION, id), { name }, { merge: true });
   } else {
     const all = localGet(LOCAL_GAMES, {});
-    all[id] = { name };
+    all[id] = { ...(all[id] || {}), name };
     localSet(LOCAL_GAMES, all);
   }
+}
+
+async function setGameUrl(id, url){
+  if (!demoMode && db) {
+    const { doc, setDoc } = window._fs;
+    await setDoc(doc(db, GAMES_COLLECTION, id), { url }, { merge: true });
+  } else {
+    const all = localGet(LOCAL_GAMES, {});
+    if (all[id]) all[id].url = url;
+    localSet(LOCAL_GAMES, all);
+  }
+}
+
+// Bulk import: pairs = [{name, url}]. Matches existing games by slugified name.
+// Returns { updated: [name...], unmatched: [name...] }.
+async function bulkImportUrls(pairs){
+  const games = await getGames();
+  const updated = [];
+  const unmatched = [];
+  for (const { name, url } of pairs) {
+    const id = slugify(name);
+    if (games[id]) {
+      await setGameUrl(id, url);
+      updated.push(games[id].name);
+    } else {
+      unmatched.push(name);
+    }
+  }
+  return { updated, unmatched };
 }
 
 async function seedGames(){
@@ -454,7 +485,7 @@ function computeLeaderboard(gamesMap, rankingsMap){
   const rows = Object.keys(gamesMap).map(id => {
     const t = totals[id];
     const avg = t.count > 0 ? t.sum / t.count : null;
-    return { id, name: gamesMap[id].name, avg, count: t.count };
+    return { id, name: gamesMap[id].name, url: gamesMap[id].url || '', avg, count: t.count };
   });
   rows.sort((a, b) => {
     if (a.avg === null && b.avg === null) return a.name.localeCompare(b.name);
@@ -518,7 +549,7 @@ async function renderMyList(){
   const rows = order.map((gid, i) => `
     <div class="list-row">
       <input type="number" class="rank-input" data-goto="${gid}" min="1" max="${order.length}" value="${i + 1}" inputmode="numeric">
-      <div class="list-name">${escapeHtml(games[gid].name)}</div>
+      <div class="list-name name-with-art">${games[gid].url ? `<img class="game-thumb" src="${escapeHtml(games[gid].url)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ''}<span>${escapeHtml(games[gid].name)}</span></div>
       <div class="list-btns">
         <button class="mini-btn" data-action="top" data-id="${gid}" ${i === 0 ? 'disabled' : ''} title="Move to top">⤒</button>
         <button class="mini-btn" data-action="up" data-id="${gid}" ${i === 0 ? 'disabled' : ''} title="Move up">▲</button>
@@ -531,7 +562,7 @@ async function renderMyList(){
 
   const availRows = available.map(gid => `
     <div class="avail-row">
-      <span>${escapeHtml(games[gid].name)}</span>
+      <span class="name-with-art">${games[gid].url ? `<img class="game-thumb" src="${escapeHtml(games[gid].url)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ''}<span>${escapeHtml(games[gid].name)}</span></span>
       <button class="add-btn" data-action="add" data-id="${gid}">+ Add</button>
     </div>
   `).join('');
@@ -600,7 +631,7 @@ async function renderResults(){
   board.innerHTML = ranked.map((g, i) => `
     <div class="row">
       <div class="rank ${i < 3 ? 'medal' : ''}">${i < 3 ? medals[i] : i + 1}</div>
-      <div class="row-name">${escapeHtml(g.name)}</div>
+      <div class="row-name name-with-art">${g.url ? `<img class="game-thumb" src="${escapeHtml(g.url)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ''}<span>${escapeHtml(g.name)}</span></div>
       <div class="row-record">${g.count} rater${g.count === 1 ? '' : 's'}</div>
       <div class="rating-chip">${g.avg.toFixed(1)}</div>
     </div>
@@ -625,7 +656,7 @@ async function renderPlayers(){
       <div class="user-card">
         <h3>${escapeHtml(u.name)}</h3>
         <ol class="user-top-list">
-          ${top5.map((gid, i) => `<li><span class="u-rank">${i + 1}</span><span class="u-name">${escapeHtml(games[gid].name)}</span></li>`).join('') || '<li class="u-name">No games ranked yet</li>'}
+          ${top5.map((gid, i) => `<li><span class="u-rank">${i + 1}</span>${games[gid].url ? `<img class="game-thumb" style="width:22px;height:22px;" src="${escapeHtml(games[gid].url)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ''}<span class="u-name">${escapeHtml(games[gid].name)}</span></li>`).join('') || '<li class="u-name">No games ranked yet</li>'}
         </ol>
       </div>
     `;
@@ -641,8 +672,11 @@ async function renderAdminPanel(){
 
   const gameRows = Object.keys(games).sort((a,b) => games[a].name.localeCompare(games[b].name)).map(id => `
     <div class="game-admin-row">
-      <span>${escapeHtml(games[id].name)}</span>
-      <button class="mini-btn danger" data-remove-game="${id}" title="Remove game">✕</button>
+      <span class="name-with-art">${games[id].url ? `<img class="game-thumb" src="${escapeHtml(games[id].url)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ''}<span>${escapeHtml(games[id].name)}</span></span>
+      <span style="display:flex;gap:6px;">
+        <button class="mini-btn" data-edit-url="${id}" title="Set/edit box art URL">🖼</button>
+        <button class="mini-btn danger" data-remove-game="${id}" title="Remove game">✕</button>
+      </span>
     </div>
   `).join('');
 
@@ -663,6 +697,20 @@ async function renderAdminPanel(){
         </div>
       </div>
       ${gameRows || '<div class="empty-state">No games yet.</div>'}
+    </div>
+    <div class="admin-card">
+      <div class="section-head">
+        <h2>Import Box Art URLs</h2>
+      </div>
+      <p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 10px;">
+        One game per line, format: <code>Game Name | https://image-url</code>. Matches by exact game name against your existing list — unmatched lines are reported after import.
+      </p>
+      <textarea id="url-import-textarea" rows="8" style="width:100%;font-family:var(--font-display);font-size:12.5px;background:rgba(0,0,0,0.3);color:var(--ink);border:1px solid var(--felt-line);border-radius:8px;padding:10px;" placeholder="Ra | https://cf.geekdo-images.com/.../ra.jpg
+Wingspan | https://cf.geekdo-images.com/.../wingspan.jpg"></textarea>
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+        <button class="btn" id="import-urls-btn">Import</button>
+        <span id="import-result" style="font-size:12.5px;color:var(--ink-dim);"></span>
+      </div>
     </div>
     <div class="admin-card">
       <div class="section-head">
@@ -695,6 +743,38 @@ async function renderAdminPanel(){
       await removeGame(btn.dataset.removeGame);
       renderCurrentView();
     });
+  });
+  el.querySelectorAll('[data-edit-url]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.editUrl;
+      const current = games[id].url || '';
+      const url = prompt(`Box art URL for "${games[id].name}":`, current);
+      if (url === null) return; // cancelled
+      await setGameUrl(id, url.trim());
+      renderCurrentView();
+    });
+  });
+
+  document.getElementById('import-urls-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('import-urls-btn');
+    const resultEl = document.getElementById('import-result');
+    const raw = document.getElementById('url-import-textarea').value;
+    const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+    const pairs = lines.map(line => {
+      const parts = line.split('|');
+      return { name: (parts[0] || '').trim(), url: (parts.slice(1).join('|') || '').trim() };
+    }).filter(p => p.name && p.url);
+
+    if (pairs.length === 0) {
+      resultEl.textContent = 'Nothing to import — check the format.';
+      return;
+    }
+    btn.disabled = true; btn.textContent = 'Importing…';
+    const { updated, unmatched } = await bulkImportUrls(pairs);
+    btn.disabled = false; btn.textContent = 'Import';
+    resultEl.textContent = `Updated ${updated.length}.` + (unmatched.length ? ` Not matched: ${unmatched.join(', ')}` : '');
+    if (updated.length) document.getElementById('url-import-textarea').value = '';
+    renderCurrentView();
   });
 
   const seedPlayersBtn = document.getElementById('seed-players-btn');

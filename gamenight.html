@@ -452,7 +452,7 @@ async function getAllEvents(){
 
 async function createEvent(ev){
   const id = newId();
-  const record = { ...ev, createdAt: Date.now(), rsvps: {}, suggestions: [] };
+  const record = { ...ev, createdAt: Date.now(), rsvps: {}, suggestions: [], gamesPlayed: [] };
   if (!demoMode && db) {
     const { doc, setDoc } = window._fs;
     await setDoc(doc(db, COLLECTION, id), record);
@@ -514,6 +514,40 @@ async function toggleVote(eventId, suggId, playerName){
     if (!s) return list;
     const i = s.votes.indexOf(playerName);
     if (i >= 0) s.votes.splice(i, 1); else s.votes.push(playerName);
+    return list;
+  });
+}
+
+async function setGamesPlayed(eventId, mutateFn){
+  if (!demoMode && db) {
+    const { doc, runTransaction } = window._fs;
+    const ref = doc(db, COLLECTION, eventId);
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists()) return;
+      const data = snap.data();
+      const list = mutateFn(data.gamesPlayed || []);
+      tx.update(ref, { gamesPlayed: list });
+    });
+  } else {
+    const all = localGetAll();
+    if (!all[eventId]) return;
+    all[eventId].gamesPlayed = mutateFn(all[eventId].gamesPlayed || []);
+    localSaveAll(all);
+  }
+}
+
+async function toggleGamePlayed(eventId, gameName){
+  await setGamesPlayed(eventId, (list) => {
+    const i = list.indexOf(gameName);
+    if (i >= 0) list.splice(i, 1); else list.push(gameName);
+    return list;
+  });
+}
+
+async function addGamePlayed(eventId, gameName){
+  await setGamesPlayed(eventId, (list) => {
+    if (!list.some(g => g.toLowerCase() === gameName.toLowerCase())) list.push(gameName);
     return list;
   });
 }
@@ -643,6 +677,44 @@ async function renderAdminPlayerPanel(){
   });
 }
 
+function renderGamesPlayedSection(id, ev, isAdmin){
+  const gamesPlayed = ev.gamesPlayed || [];
+  const candidates = (ev.suggestions || []).map(s => s.name);
+  gamesPlayed.forEach(g => { if (!candidates.some(c => c.toLowerCase() === g.toLowerCase())) candidates.push(g); });
+
+  if (!isAdmin) {
+    return `
+      <div class="suggestions">
+        <div class="col-title">Games Played</div>
+        ${gamesPlayed.length
+          ? `<div class="names" style="line-height:1.8;">${gamesPlayed.map(escapeHtml).join(', ')}</div>`
+          : `<div class="no-sugg">No games recorded yet.</div>`}
+      </div>`;
+  }
+
+  const rows = candidates.length
+    ? candidates.map(name => `
+        <div class="sugg-row">
+          <span class="sugg-name">${escapeHtml(name)}</span>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-dim);cursor:pointer;">
+            <input type="checkbox" data-action="toggle-played" data-event="${id}" data-game="${escapeHtml(name)}" ${gamesPlayed.some(g => g.toLowerCase() === name.toLowerCase()) ? 'checked' : ''}>
+            Played
+          </label>
+        </div>`).join('')
+    : `<div class="no-sugg">Nothing suggested beforehand — add what was played below.</div>`;
+
+  return `
+    <div class="suggestions">
+      <div class="col-title">Games Played <span style="opacity:.6;font-weight:400;text-transform:none;letter-spacing:0;">(admin)</span></div>
+      ${rows}
+      <div class="add-sugg-row">
+        <input type="text" list="games-list-${id}" placeholder="Add a game that isn't listed" id="played-input-${id}">
+        <datalist id="games-list-${id}">${GAMES.map(g => `<option value="${escapeHtml(g)}"></option>`).join('')}</datalist>
+        <button class="btn small" data-action="add-played" data-event="${id}">Add</button>
+      </div>
+    </div>`;
+}
+
 function renderEventCard(id, ev, identity, isPast){
   const rsvps = ev.rsvps || {};
   const yes = Object.keys(rsvps).filter(n => rsvps[n] === 'yes');
@@ -706,16 +778,16 @@ function renderEventCard(id, ev, identity, isPast){
         </div>
       </div>
 
+      ${isPast ? renderGamesPlayedSection(id, ev, isAdminSession) : `
       <div class="suggestions">
         <div class="col-title">What to play</div>
         ${sugRows}
-        ${isPast ? '' : `
         <div class="add-sugg-row">
           <input type="text" list="games-list-${id}" placeholder="Pick from the collection or type a new game" id="sugg-input-${id}">
           <datalist id="games-list-${id}">${gameOptions}</datalist>
           <button class="btn small" data-action="suggest" data-event="${id}" ${identity ? '' : 'disabled'}>Suggest</button>
-        </div>`}
-      </div>
+        </div>
+      </div>`}
     </div>
   `;
 }
@@ -745,6 +817,21 @@ function attachEventHandlers(){
       const val = input.value.trim();
       if (!val) return;
       await addSuggestion(btn.dataset.event, val, identity);
+      renderAll();
+    });
+  });
+  document.querySelectorAll('[data-action="toggle-played"]').forEach(cb => {
+    cb.addEventListener('change', async () => {
+      await toggleGamePlayed(cb.dataset.event, cb.dataset.game);
+      renderAll();
+    });
+  });
+  document.querySelectorAll('[data-action="add-played"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const input = document.getElementById(`played-input-${btn.dataset.event}`);
+      const val = input.value.trim();
+      if (!val) return;
+      await addGamePlayed(btn.dataset.event, val);
       renderAll();
     });
   });

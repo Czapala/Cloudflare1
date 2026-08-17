@@ -152,6 +152,16 @@
   .add-sugg-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
   .add-sugg-row select, .add-sugg-row input{flex:1;min-width:140px;}
 
+  .sugg-thumb{width:26px;height:26px;border-radius:5px;object-fit:cover;background:rgba(120,170,220,0.12);flex-shrink:0;margin-right:8px;}
+  .sugg-thumb.placeholder{display:inline-flex;align-items:center;justify-content:center;font-size:13px;}
+
+  .played-grid{display:grid;gap:14px;margin-top:2px;}
+  .played-cell{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;}
+  .played-cell.empty{visibility:hidden;}
+  .played-thumb{width:100%;aspect-ratio:1/1;border-radius:8px;object-fit:cover;background:rgba(120,170,220,0.12);display:block;}
+  .played-thumb.placeholder{display:flex;align-items:center;justify-content:center;font-size:26px;}
+  .played-title{font-size:12px;color:var(--text);line-height:1.35;}
+
   /* new event modal */
   .modal-backdrop{
     position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;
@@ -601,9 +611,44 @@ function escapeHtml(s){
 }
 
 let eventsCache = {};
+let gamesThumbLookup = {};
+
+async function getGamesThumbLookup(){
+  if (!demoMode && db) {
+    const { collection, getDocs } = window._fs;
+    const snap = await getDocs(collection(db, "games_master"));
+    const map = {};
+    snap.forEach(d => {
+      const data = d.data();
+      if (data.name) map[data.name.toLowerCase()] = data.url || '';
+    });
+    return map;
+  }
+  return {};
+}
+
+async function addGameToMaster(name, url){
+  if (!demoMode && db) {
+    const { doc, setDoc } = window._fs;
+    const id = slugify(name);
+    const payload = url ? { name, url } : { name };
+    await setDoc(doc(db, "games_master", id), payload, { merge: true });
+  }
+}
+
+async function maybeOfferAddToMaster(name){
+  if (demoMode || !db) return;
+  const known = Object.prototype.hasOwnProperty.call(gamesThumbLookup, name.toLowerCase());
+  if (known) return;
+  if (confirm(`"${name}" isn't in the games database yet. Add it so it shows up with a thumbnail everywhere (rankings, future suggestions)?`)) {
+    const url = prompt(`Box art URL for "${name}" (optional — leave blank to add without one):`, '');
+    await addGameToMaster(name, (url || '').trim());
+  }
+}
 
 async function renderAll(){
   eventsCache = await getAllEvents();
+  gamesThumbLookup = await getGamesThumbLookup();
   const identity = getIdentity();
   const ids = Object.keys(eventsCache);
   const today = todayStr();
@@ -677,6 +722,23 @@ async function renderAdminPlayerPanel(){
   });
 }
 
+function renderGamesPlayedGrid(gamesPlayed){
+  if (!gamesPlayed.length) return `<div class="no-sugg">No games recorded yet.</div>`;
+  const n = gamesPlayed.length;
+  const cols = Math.ceil(Math.sqrt(n));
+  const rows = Math.ceil(n / cols);
+  const total = cols * rows;
+  const cells = gamesPlayed.map(name => {
+    const url = gamesThumbLookup[name.toLowerCase()] || '';
+    const thumb = url
+      ? `<img class="played-thumb" src="${escapeHtml(url)}" alt="" loading="lazy">`
+      : `<div class="played-thumb placeholder">🎲</div>`;
+    return `<div class="played-cell">${thumb}<div class="played-title">${escapeHtml(name)}</div></div>`;
+  });
+  for (let i = n; i < total; i++) cells.push(`<div class="played-cell empty"></div>`);
+  return `<div class="played-grid" style="grid-template-columns:repeat(${cols}, 1fr);">${cells.join('')}</div>`;
+}
+
 function renderGamesPlayedSection(id, ev, isAdmin){
   const gamesPlayed = ev.gamesPlayed || [];
   const candidates = (ev.suggestions || []).map(s => s.name);
@@ -686,21 +748,25 @@ function renderGamesPlayedSection(id, ev, isAdmin){
     return `
       <div class="suggestions">
         <div class="col-title">Games Played</div>
-        ${gamesPlayed.length
-          ? `<div class="names" style="line-height:1.8;">${gamesPlayed.map(escapeHtml).join(', ')}</div>`
-          : `<div class="no-sugg">No games recorded yet.</div>`}
+        ${renderGamesPlayedGrid(gamesPlayed)}
       </div>`;
   }
 
   const rows = candidates.length
-    ? candidates.map(name => `
+    ? candidates.map(name => {
+        const url = gamesThumbLookup[name.toLowerCase()] || '';
+        const thumbHtml = url
+          ? `<img class="sugg-thumb" src="${escapeHtml(url)}" alt="" loading="lazy">`
+          : `<span class="sugg-thumb placeholder">🎲</span>`;
+        return `
         <div class="sugg-row">
-          <span class="sugg-name">${escapeHtml(name)}</span>
+          <span class="sugg-name" style="display:flex;align-items:center;">${thumbHtml}${escapeHtml(name)}</span>
           <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-dim);cursor:pointer;">
             <input type="checkbox" data-action="toggle-played" data-event="${id}" data-game="${escapeHtml(name)}" ${gamesPlayed.some(g => g.toLowerCase() === name.toLowerCase()) ? 'checked' : ''}>
             Played
           </label>
-        </div>`).join('')
+        </div>`;
+      }).join('')
     : `<div class="no-sugg">Nothing suggested beforehand — add what was played below.</div>`;
 
   return `
@@ -823,6 +889,7 @@ function attachEventHandlers(){
   document.querySelectorAll('[data-action="toggle-played"]').forEach(cb => {
     cb.addEventListener('change', async () => {
       await toggleGamePlayed(cb.dataset.event, cb.dataset.game);
+      if (cb.checked) await maybeOfferAddToMaster(cb.dataset.game);
       renderAll();
     });
   });
@@ -832,6 +899,7 @@ function attachEventHandlers(){
       const val = input.value.trim();
       if (!val) return;
       await addGamePlayed(btn.dataset.event, val);
+      await maybeOfferAddToMaster(val);
       renderAll();
     });
   });

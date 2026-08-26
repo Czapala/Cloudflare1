@@ -246,6 +246,12 @@ const MEMBERS_PRIVATE = "prayer_members_private";
 const MEETING_COLLECTION = "prayer_meetings";
 const MEETING_DOC = "current";
 
+// The site owner's own WhatsApp number (country code + digits, no plus sign, no spaces).
+// WhatsApp's click-to-chat links can't target a named group directly, so the
+// "send full list" button opens a chat to this number — from there, forward
+// the message into the "Life Group 2026" group manually.
+const GROUP_RELAY_PHONE = "61XXXXXXXXX"; // TODO: replace with your real number
+
 let db = null;
 let auth = null;
 let demoMode = true;
@@ -400,11 +406,11 @@ async function toggleAttendee(name){
   await saveMeeting(m);
 }
 
-async function addRequest(name, text){
+async function addRequest(name, praise, text){
   const m = await getMeeting();
   if (!m || m.status !== 'open') return;
   m.requests = m.requests || [];
-  m.requests.push({ id: newId(), name, text, ts: Date.now() });
+  m.requests.push({ id: newId(), name, praise: praise || '', text, ts: Date.now() });
   await saveMeeting(m);
 }
 
@@ -534,6 +540,7 @@ function renderOpenMeeting(identity){
     ? requests.map(r => `
         <div class="req-row">
           <div class="req-name">${escapeHtml(r.name)}</div>
+          ${r.praise ? `<div class="req-text"><strong>Praise:</strong> ${escapeHtml(r.praise)}</div>` : ''}
           <div class="req-text">${escapeHtml(r.text)}</div>
         </div>`).join('')
     : `<div class="no-req">No requests submitted yet.</div>`;
@@ -558,6 +565,10 @@ function renderOpenMeeting(identity){
             <option value="">Select…</option>
             ${reqOptions}
           </select>
+        </div>
+        <div class="field">
+          <label for="req-praise">Praise <span style="opacity:.6;font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label>
+          <textarea id="req-praise" rows="2" placeholder="Anything to give thanks for?"></textarea>
         </div>
         <div class="field">
           <label for="req-text">Prayer request</label>
@@ -589,11 +600,13 @@ function attachOpenHandlers(identity){
   const submitBtn = document.getElementById('submit-req-btn');
   if (submitBtn) submitBtn.addEventListener('click', async () => {
     const nameSel = document.getElementById('req-name');
+    const praiseEl = document.getElementById('req-praise');
     const textEl = document.getElementById('req-text');
     const name = nameSel.value;
+    const praise = praiseEl.value.trim();
     const text = textEl.value.trim();
     if (!name || !text) return;
-    await addRequest(name, text);
+    await addRequest(name, praise, text);
     renderMain();
   });
   const closeBtn = document.getElementById('close-meeting-btn');
@@ -601,6 +614,16 @@ function attachOpenHandlers(identity){
     await closeAndAssign();
     renderMain();
   }));
+}
+
+function formatRequestLine(r, i){
+  const praiseLine = r.praise ? `\n   Praise: ${r.praise}` : '';
+  return `${i + 1}. ${r.name}${praiseLine}\n   Request: ${r.text}`;
+}
+
+function buildFullListMessage(requests){
+  return `🙏 Life Group 2026 — Prayer Requests\n\n` +
+    requests.map((r, i) => formatRequestLine(r, i)).join('\n\n');
 }
 
 function renderClosedMeeting(){
@@ -619,7 +642,7 @@ function renderClosedMeeting(){
     const reqIds = assignments[name];
     const reqs = reqIds.map(id => byId[id]).filter(Boolean);
     const message = `🙏 Prayer requests for you to pray for:\n\n` +
-      reqs.map((r, i) => `${i + 1}. ${r.name}: ${r.text}`).join('\n');
+      reqs.map((r, i) => formatRequestLine(r, i)).join('\n\n');
     const memberId = memberIdByName(name);
     const phone = memberId && privateMembersCache[memberId] ? (privateMembersCache[memberId].phone || '').replace(/[^0-9]/g, '') : '';
     const waLink = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}` : null;
@@ -627,14 +650,27 @@ function renderClosedMeeting(){
     return `
       <div class="assign-block">
         <div class="assign-name">${escapeHtml(name)} <span class="attendee-count">${reqs.length} request${reqs.length === 1 ? '' : 's'}</span></div>
-        <div class="assign-reqs">${reqs.map(r => escapeHtml(r.name) + ': ' + escapeHtml(r.text)).join('<br>')}</div>
+        <div class="assign-reqs">${reqs.map(r => escapeHtml(r.name) + ': ' + (r.praise ? '<em>Praise — ' + escapeHtml(r.praise) + '</em><br>&nbsp;&nbsp;' : '') + escapeHtml(r.text)).join('<br>')}</div>
         ${waLink
           ? `<a class="wa-link" href="${waLink}" target="_blank" rel="noopener">Open WhatsApp →</a>`
           : `<span class="no-req">No phone number on file for ${escapeHtml(name)}.</span>`}
       </div>`;
   }).join('');
 
+  const fullMessage = buildFullListMessage(requests);
+  const relayPhone = (GROUP_RELAY_PHONE || '').replace(/[^0-9]/g, '');
+  const fullWaLink = relayPhone && !/X/i.test(GROUP_RELAY_PHONE)
+    ? `https://wa.me/${relayPhone}?text=${encodeURIComponent(fullMessage)}`
+    : null;
+
   return `
+    <div class="card">
+      <div class="section-head" style="margin-top:0;"><h2>Send full list to Life Group 2026</h2></div>
+      <p class="assign-reqs" style="margin-top:0;">WhatsApp can't be pre-filled straight into a named group, so this opens a chat to your own number with everything below — forward that one message into Life Group 2026.</p>
+      ${fullWaLink
+        ? `<a class="wa-link" href="${fullWaLink}" target="_blank" rel="noopener">Open WhatsApp →</a>`
+        : `<span class="no-req">Set GROUP_RELAY_PHONE in the code to your WhatsApp number to enable this link.</span>`}
+    </div>
     <div class="card">
       <div class="section-head" style="margin-top:0;"><h2>Send to attendees</h2></div>
       ${blocks || '<div class="no-req">No assignments.</div>'}

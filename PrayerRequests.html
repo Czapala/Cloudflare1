@@ -256,13 +256,16 @@ let db = null;
 let auth = null;
 let demoMode = true;
 let isAdminSession = false;
+let unsubPrivateMembers = null;
 
 /* ---------------- Firebase + auth boot ---------------- */
 async function initStorage(){
   try {
-    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
-    const firestore = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-    const authMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    const [{ initializeApp }, firestore, authMod] = await Promise.all([
+      import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),
+      import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"),
+      import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js")
+    ]);
     const app = initializeApp(firebaseConfig);
     db = firestore.getFirestore(app);
     window._fs = firestore;
@@ -284,6 +287,7 @@ async function initStorage(){
     authMod.onAuthStateChanged(auth, (user) => {
       isAdminSession = !!(user && !user.isAnonymous);
       updateAdminBadge();
+      subscribePrivateMembers();
       renderMain();
     });
   } catch (e) {
@@ -300,6 +304,45 @@ function updateAdminBadge(){
   badge.classList.toggle('on', isAdminSession);
   text.textContent = isAdminSession ? 'Admin signed in' : 'Not signed in';
   toggleBtn.textContent = isAdminSession ? 'Sign out' : 'Admin';
+}
+
+/* ---------------- live listeners (replaces one-shot fetch-on-every-action) ----------------
+   publicMembersCache / privateMembersCache / meetingCache are kept fresh by these
+   listeners in live mode. Firestore applies your own writes to its local cache
+   immediately (before the server round-trip completes), so these callbacks fire
+   near-instantly on your own actions — renderMain() no longer waits on the network. */
+function startListeners(){
+  if (demoMode || !db) { renderMain(); return; }
+  const { collection, doc, onSnapshot } = window._fs;
+
+  onSnapshot(collection(db, MEMBERS_PUBLIC), snap => {
+    const out = {};
+    snap.forEach(d => { out[d.id] = d.data(); });
+    publicMembersCache = out;
+    renderMain();
+  }, err => console.warn("Public members listener error:", err));
+
+  onSnapshot(doc(db, MEETING_COLLECTION, MEETING_DOC), snap => {
+    meetingCache = snap.exists() ? snap.data() : null;
+    renderMain();
+  }, err => console.warn("Meeting listener error:", err));
+
+  subscribePrivateMembers();
+}
+
+function subscribePrivateMembers(){
+  if (unsubPrivateMembers) { unsubPrivateMembers(); unsubPrivateMembers = null; }
+  if (demoMode || !db || !isAdminSession) { privateMembersCache = {}; return; }
+  const { collection, onSnapshot } = window._fs;
+  unsubPrivateMembers = onSnapshot(collection(db, MEMBERS_PRIVATE), snap => {
+    const out = {};
+    snap.forEach(d => { out[d.id] = d.data(); });
+    privateMembersCache = out;
+    renderMain();
+  }, err => {
+    console.warn("Private members listener error (expected unless signed in as admin):", err);
+    privateMembersCache = {};
+  });
 }
 
 /* ---- local (demo) storage ---- */
@@ -397,21 +440,39 @@ async function startMeeting(){
   await saveMeeting({ status: 'open', createdAt: Date.now(), attendees: [], requests: [], assignments: null });
 }
 
+// In live mode meetingCache is already kept fresh by the onSnapshot listener,
+// so mutations read from it directly instead of doing another network round-trip.
+// Demo mode has no listener, so it still reads from localStorage.
+async function getCurrentMeetingForMutation(){
+  if (!demoMode && db) return meetingCache;
+  return await getMeeting();
+}
+
 async function toggleAttendee(name){
-  const m = await getMeeting();
+  const m = await getCurrentMeetingForMutation();
   if (!m || m.status !== 'open') return;
   const set = new Set(m.attendees || []);
   if (set.has(name)) set.delete(name); else set.add(name);
-  m.attendees = Array.from(set);
-  await saveMeeting(m);
+  await saveMeeting({ ...m, attendees: Array.from(set) });
+}
+
+// Marks someone present without removing anyone else — used when a person
+// picks their own name, so choosing your name IS checking yourself in.
+async function ensureAttendee(name){
+  const m = await getCurrentMeetingForMutation();
+  if (!m || m.status !== 'open') return;
+  const set = new Set(m.attendees || []);
+  if (!set.has(name)) {
+    set.add(name);
+    await saveMeeting({ ...m, attendees: Array.from(set) });
+  }
 }
 
 async function addRequest(name, praise, text){
-  const m = await getMeeting();
+  const m = await getCurrentMeetingForMutation();
   if (!m || m.status !== 'open') return;
-  m.requests = m.requests || [];
-  m.requests.push({ id: newId(), name, praise: praise || '', text, ts: Date.now() });
-  await saveMeeting(m);
+  const requests = [...(m.requests || []), { id: newId(), name, praise: praise || '', text, ts: Date.now() }];
+  await saveMeeting({ ...m, requests });
 }
 
 function shuffle(arr){
@@ -442,12 +503,10 @@ function buildAssignments(requests, attendees){
 }
 
 async function closeAndAssign(){
-  const m = await getMeeting();
+  const m = await getCurrentMeetingForMutation();
   if (!m || m.status !== 'open') return;
   const assignments = buildAssignments(m.requests || [], m.attendees || []);
-  m.status = 'closed';
-  m.assignments = assignments;
-  await saveMeeting(m);
+  await saveMeeting({ ...m, status: 'closed', assignments });
 }
 
 /* ---------------- identity ---------------- */
@@ -480,13 +539,22 @@ function populateIdentitySelect(){
     sel.appendChild(opt);
   });
   sel.value = getIdentity();
-  sel.onchange = () => { setIdentity(sel.value); renderMain(); };
+  sel.onchange = async () => {
+    setIdentity(sel.value);
+    if (sel.value) await ensureAttendee(sel.value);
+    renderMain();
+  };
 }
 
 async function renderMain(){
-  publicMembersCache = await getPublicMembers();
-  privateMembersCache = isAdminSession ? await getPrivateMembers() : {};
-  meetingCache = await getMeeting();
+  // In live mode, publicMembersCache / privateMembersCache / meetingCache are already
+  // kept fresh by the onSnapshot listeners from startListeners() — no fetch needed here.
+  // Demo mode has no listeners, so it still reads from localStorage on every render.
+  if (demoMode) {
+    publicMembersCache = await getPublicMembers();
+    privateMembersCache = isAdminSession ? await getPrivateMembers() : {};
+    meetingCache = await getMeeting();
+  }
   populateIdentitySelect();
   const el = document.getElementById('main-content');
   const identity = getIdentity();
@@ -525,16 +593,12 @@ function renderOpenMeeting(identity){
 
   const chips = names.map(name => {
     const checked = attendees.includes(name);
-    const isMine = identity === name;
-    const canToggle = isMine || isAdminSession;
     return `
-      <label class="attendee-chip ${checked ? 'checked' : ''} ${canToggle ? '' : 'locked'}" data-name="${escapeHtml(name)}">
-        <input type="checkbox" ${checked ? 'checked' : ''} ${canToggle ? '' : 'disabled'} data-action="toggle-attendee" data-name="${escapeHtml(name)}">
+      <label class="attendee-chip ${checked ? 'checked' : ''}" data-name="${escapeHtml(name)}">
+        <input type="checkbox" ${checked ? 'checked' : ''} data-action="toggle-attendee" data-name="${escapeHtml(name)}">
         ${escapeHtml(name)}
       </label>`;
   }).join('');
-
-  const reqOptions = attendees.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
 
   const reqRows = requests.length
     ? requests.map(r => `
@@ -545,27 +609,23 @@ function renderOpenMeeting(identity){
         </div>`).join('')
     : `<div class="no-req">No requests submitted yet.</div>`;
 
-  return `
+  const adminAttendeeCard = isAdminSession ? `
     <div class="card">
       <div class="section-head" style="margin-top:0;">
         <h2>Who's here <span class="attendee-count">${attendees.length} attending</span></h2>
       </div>
+      <p class="no-req" style="margin:0 0 10px;">Fills in automatically as people pick their name below. Use this to add someone without a device, or remove someone who left.</p>
       <div class="attendee-grid">${chips}</div>
-    </div>
+    </div>` : '';
 
+  return `
+    ${adminAttendeeCard}
     <div class="card">
       <div class="section-head" style="margin-top:0;">
         <h2>Submit a request</h2>
       </div>
-      ${attendees.length === 0 ? `<div class="no-req">Mark attendees above before submitting requests.</div>` : `
+      ${!identity ? `<div class="no-req">Select your name above to join and submit a request.</div>` : `
       <div class="req-form">
-        <div class="field">
-          <label for="req-name">Your name</label>
-          <select id="req-name">
-            <option value="">Select…</option>
-            ${reqOptions}
-          </select>
-        </div>
         <div class="field">
           <label for="req-praise">Praise <span style="opacity:.6;font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label>
           <textarea id="req-praise" rows="2" placeholder="Anything to give thanks for?"></textarea>
@@ -591,22 +651,18 @@ function renderOpenMeeting(identity){
 function attachOpenHandlers(identity){
   document.querySelectorAll('[data-action="toggle-attendee"]').forEach(cb => {
     cb.addEventListener('change', async () => {
-      const name = cb.dataset.name;
-      if (name !== identity && !isAdminSession) { renderMain(); return; }
-      await toggleAttendee(name);
+      await toggleAttendee(cb.dataset.name);
       renderMain();
     });
   });
   const submitBtn = document.getElementById('submit-req-btn');
   if (submitBtn) submitBtn.addEventListener('click', async () => {
-    const nameSel = document.getElementById('req-name');
     const praiseEl = document.getElementById('req-praise');
     const textEl = document.getElementById('req-text');
-    const name = nameSel.value;
     const praise = praiseEl.value.trim();
     const text = textEl.value.trim();
-    if (!name || !text) return;
-    await addRequest(name, praise, text);
+    if (!identity || !text) return;
+    await addRequest(identity, praise, text);
     renderMain();
   });
   const closeBtn = document.getElementById('close-meeting-btn');
@@ -788,7 +844,7 @@ document.getElementById('member-submit').addEventListener('click', async () => {
 (async function boot(){
   updateAdminBadge();
   await initStorage();
-  await renderMain();
+  startListeners();
 })();
 </script>
 </body>

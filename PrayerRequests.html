@@ -444,39 +444,53 @@ async function startMeeting(){
   await saveMeeting({ status: 'open', createdAt: Date.now(), attendees: [], requests: [], assignments: null });
 }
 
-// In live mode meetingCache is already kept fresh by the onSnapshot listener,
-// so mutations read from it directly instead of doing another network round-trip.
-// Demo mode has no listener, so it still reads from localStorage.
-async function getCurrentMeetingForMutation(){
-  if (!demoMode && db) return meetingCache;
-  return await getMeeting();
+// Runs mutateFn against the current meeting doc atomically. In live mode this uses
+// a Firestore transaction — the doc is read fresh from the server and the write only
+// commits if nothing else changed it in between (auto-retried otherwise), which closes
+// the lost-update race that a plain read-then-write has when two people act at once.
+// mutateFn returns the full new doc to write, or a falsy value to skip writing.
+async function mutateMeeting(mutateFn){
+  if (!demoMode && db) {
+    const { doc, runTransaction } = window._fs;
+    const ref = doc(db, MEETING_COLLECTION, MEETING_DOC);
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      const current = snap.exists() ? snap.data() : null;
+      const updated = mutateFn(current);
+      if (updated) tx.set(ref, updated);
+    });
+  } else {
+    const current = await getMeeting();
+    const updated = mutateFn(current);
+    if (updated) await saveMeeting(updated);
+  }
 }
 
 async function toggleAttendee(name){
-  const m = await getCurrentMeetingForMutation();
-  if (!m || m.status !== 'open') return;
-  const set = new Set(m.attendees || []);
-  if (set.has(name)) set.delete(name); else set.add(name);
-  await saveMeeting({ ...m, attendees: Array.from(set) });
+  await mutateMeeting(m => {
+    if (!m || m.status !== 'open') return null;
+    const set = new Set(m.attendees || []);
+    if (set.has(name)) set.delete(name); else set.add(name);
+    return { ...m, attendees: Array.from(set) };
+  });
 }
 
 // Marks someone present without removing anyone else — used when a person
 // picks their own name, so choosing your name IS checking yourself in.
 async function ensureAttendee(name){
-  const m = await getCurrentMeetingForMutation();
-  if (!m || m.status !== 'open') return;
-  const set = new Set(m.attendees || []);
-  if (!set.has(name)) {
-    set.add(name);
-    await saveMeeting({ ...m, attendees: Array.from(set) });
-  }
+  await mutateMeeting(m => {
+    if (!m || m.status !== 'open') return null;
+    if ((m.attendees || []).includes(name)) return null;
+    return { ...m, attendees: [...(m.attendees || []), name] };
+  });
 }
 
 async function addRequest(name, praise, text){
-  const m = await getCurrentMeetingForMutation();
-  if (!m || m.status !== 'open') return;
-  const requests = [...(m.requests || []), { id: newId(), name, praise: praise || '', text, ts: Date.now() }];
-  await saveMeeting({ ...m, requests });
+  await mutateMeeting(m => {
+    if (!m || m.status !== 'open') return null;
+    const requests = [...(m.requests || []), { id: newId(), name, praise: praise || '', text, ts: Date.now() }];
+    return { ...m, requests };
+  });
 }
 
 function shuffle(arr){
@@ -507,10 +521,11 @@ function buildAssignments(requests, attendees){
 }
 
 async function closeAndAssign(){
-  const m = await getCurrentMeetingForMutation();
-  if (!m || m.status !== 'open') return;
-  const assignments = buildAssignments(m.requests || [], m.attendees || []);
-  await saveMeeting({ ...m, status: 'closed', assignments });
+  await mutateMeeting(m => {
+    if (!m || m.status !== 'open') return null;
+    const assignments = buildAssignments(m.requests || [], m.attendees || []);
+    return { ...m, status: 'closed', assignments };
+  });
 }
 
 /* ---------------- identity ---------------- */

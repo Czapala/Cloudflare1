@@ -453,12 +453,20 @@ async function mutateMeeting(mutateFn){
   if (!demoMode && db) {
     const { doc, runTransaction } = window._fs;
     const ref = doc(db, MEETING_COLLECTION, MEETING_DOC);
+    let committed = null;
     await runTransaction(db, async (tx) => {
       const snap = await tx.get(ref);
       const current = snap.exists() ? snap.data() : null;
       const updated = mutateFn(current);
+      committed = updated;
       if (updated) tx.set(ref, updated);
     });
+    // Echo the just-committed result straight into the cache instead of waiting on the
+    // onSnapshot listener to deliver it. The listener has no ordering guarantee relative
+    // to this function returning, so a renderMain() called right after this could otherwise
+    // draw from a stale meetingCache and visibly revert whatever the user just did — the
+    // listener will confirm the same data moments later, so this doesn't cause a mismatch.
+    if (committed) meetingCache = committed;
   } else {
     const current = await getMeeting();
     const updated = mutateFn(current);

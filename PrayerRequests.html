@@ -90,6 +90,10 @@
   .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin-bottom:18px;}
   .empty-state{padding:34px 20px;text-align:center;color:var(--text-dim);font-size:14px;}
 
+  .loading-skeleton{text-align:left;}
+  .skeleton-line{height:14px;border-radius:4px;margin:10px 0;background:linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.14) 37%, rgba(255,255,255,0.06) 63%);background-size:400% 100%;animation:skeleton-shimmer 1.4s ease infinite;}
+  @keyframes skeleton-shimmer{0%{background-position:100% 50%;}100%{background-position:0% 50%;}}
+
   .attendee-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;}
   @media (max-width:480px){.attendee-grid{grid-template-columns:1fr;}}
   .attendee-chip{
@@ -250,7 +254,7 @@ const MEETING_DOC = "current";
 // WhatsApp's click-to-chat links can't target a named group directly, so the
 // "send full list" button opens a chat to this number — from there, forward
 // the message into the "Life Group 2026" group manually.
-const GROUP_RELAY_PHONE = "61404403586"; // TODO: replace with your real number
+const GROUP_RELAY_PHONE = "61XXXXXXXXX"; // TODO: replace with your real number
 
 let db = null;
 let auth = null;
@@ -518,6 +522,25 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// Disables a button and swaps its label immediately on click, so a tap always
+// gives instant feedback and can't be double-fired while the action is in flight.
+// Most buttons get torn down by the next renderMain() anyway (the listener-driven
+// re-render replaces the whole card), but this still guards slower paths and
+// demo mode, where there's no listener to redraw things for you.
+async function withBusy(btn, busyText, action){
+  if (!btn) { await action(); return; }
+  const originalText = btn.textContent;
+  const originalDisabled = btn.disabled;
+  btn.disabled = true;
+  btn.textContent = busyText;
+  try {
+    await action();
+  } finally {
+    btn.disabled = originalDisabled;
+    btn.textContent = originalText;
+  }
+}
+
 /* ---------------- rendering ---------------- */
 let publicMembersCache = {};  // id -> {name}
 let privateMembersCache = {}; // id -> {phone}  (empty unless admin)
@@ -571,10 +594,11 @@ async function renderMain(){
         No active meeting.<br>
         <button class="btn" id="start-meeting-btn" style="margin-top:14px;">+ Start New Meeting</button>
       </div>`;
-    document.getElementById('start-meeting-btn').onclick = () => requireAdmin(async () => {
+    const startBtn = document.getElementById('start-meeting-btn');
+    startBtn.onclick = () => requireAdmin(() => withBusy(startBtn, 'Starting…', async () => {
       await startMeeting();
       renderMain();
-    });
+    }));
   } else if (meetingCache.status === 'open') {
     el.innerHTML = renderOpenMeeting(identity);
     attachOpenHandlers(identity);
@@ -662,14 +686,16 @@ function attachOpenHandlers(identity){
     const praise = praiseEl.value.trim();
     const text = textEl.value.trim();
     if (!identity || !text) return;
-    await addRequest(identity, praise, text);
-    renderMain();
+    await withBusy(submitBtn, 'Submitting…', async () => {
+      await addRequest(identity, praise, text);
+      renderMain();
+    });
   });
   const closeBtn = document.getElementById('close-meeting-btn');
-  if (closeBtn) closeBtn.addEventListener('click', () => requireAdmin(async () => {
+  if (closeBtn) closeBtn.addEventListener('click', () => requireAdmin(() => withBusy(closeBtn, 'Closing…', async () => {
     await closeAndAssign();
     renderMain();
-  }));
+  })));
 }
 
 function formatRequestLine(r, i){
@@ -739,10 +765,10 @@ function renderClosedMeeting(){
 
 function attachClosedHandlers(){
   const btn = document.getElementById('new-meeting-btn');
-  if (btn) btn.addEventListener('click', () => requireAdmin(async () => {
+  if (btn) btn.addEventListener('click', () => requireAdmin(() => withBusy(btn, 'Starting…', async () => {
     await startMeeting();
     renderMain();
-  }));
+  })));
 }
 
 /* ---------------- admin member management ---------------- */
@@ -778,10 +804,10 @@ function renderAdminMemberPanel(){
     document.getElementById('member-modal').classList.add('open');
   });
   document.querySelectorAll('[data-action="remove-member"]').forEach(btn => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', () => withBusy(btn, '…', async () => {
       await removeMember(btn.dataset.id);
       renderMain();
-    });
+    }));
   });
 }
 
@@ -800,9 +826,12 @@ function requireAdmin(action){
 }
 
 document.getElementById('admin-toggle-btn').addEventListener('click', async () => {
+  const toggleBtn = document.getElementById('admin-toggle-btn');
   if (isAdminSession) {
-    await window._auth.signOut(auth);
-    renderMain();
+    await withBusy(toggleBtn, 'Signing out…', async () => {
+      await window._auth.signOut(auth);
+      renderMain();
+    });
     return;
   }
   requireAdmin(() => { renderMain(); });
@@ -812,15 +841,18 @@ document.getElementById('admin-cancel').addEventListener('click', () => adminMod
 document.getElementById('admin-submit').addEventListener('click', async () => {
   const email = document.getElementById('admin-email').value.trim();
   const password = document.getElementById('admin-password').value;
-  try {
-    await window._auth.signInWithEmailAndPassword(auth, email, password);
-    adminModal.classList.remove('open');
-    const action = pendingAction; pendingAction = null;
-    if (action) action();
-  } catch (e) {
-    console.warn("Admin sign-in failed:", e);
-    document.getElementById('admin-error').style.display = 'block';
-  }
+  const submitBtn = document.getElementById('admin-submit');
+  await withBusy(submitBtn, 'Signing in…', async () => {
+    try {
+      await window._auth.signInWithEmailAndPassword(auth, email, password);
+      adminModal.classList.remove('open');
+      const action = pendingAction; pendingAction = null;
+      if (action) action();
+    } catch (e) {
+      console.warn("Admin sign-in failed:", e);
+      document.getElementById('admin-error').style.display = 'block';
+    }
+  });
 });
 document.getElementById('admin-password').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') document.getElementById('admin-submit').click();
@@ -835,13 +867,26 @@ document.getElementById('member-submit').addEventListener('click', async () => {
     document.getElementById('member-error').style.display = 'block';
     return;
   }
-  await addMember(name, phone);
-  document.getElementById('member-modal').classList.remove('open');
-  renderMain();
+  const submitBtn = document.getElementById('member-submit');
+  await withBusy(submitBtn, 'Adding…', async () => {
+    await addMember(name, phone);
+    document.getElementById('member-modal').classList.remove('open');
+    renderMain();
+  });
 });
+
+function renderLoadingSkeleton(){
+  document.getElementById('main-content').innerHTML = `
+    <div class="card empty-state loading-skeleton">
+      <div class="skeleton-line" style="width:60%;"></div>
+      <div class="skeleton-line" style="width:85%;"></div>
+      <div class="skeleton-line" style="width:40%;"></div>
+    </div>`;
+}
 
 /* ---------------- boot ---------------- */
 (async function boot(){
+  renderLoadingSkeleton();
   updateAdminBadge();
   await initStorage();
   startListeners();

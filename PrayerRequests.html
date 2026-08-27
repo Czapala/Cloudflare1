@@ -554,13 +554,22 @@ function escapeHtml(s){
 // re-render replaces the whole card), but this still guards slower paths and
 // demo mode, where there's no listener to redraw things for you.
 async function withBusy(btn, busyText, action){
-  if (!btn) { await action(); return; }
+  if (!btn) {
+    try { await action(); } catch (e) { console.error("Action failed:", e); }
+    return;
+  }
   const originalText = btn.textContent;
   const originalDisabled = btn.disabled;
   btn.disabled = true;
   btn.textContent = busyText;
   try {
     await action();
+  } catch (e) {
+    // Swallow here rather than let it propagate as an unhandled rejection —
+    // an error partway through a write must never silently stop the caller's
+    // follow-up renderMain() from running (that's what caused requests/attendance
+    // to appear stuck until a manual page refresh).
+    console.error("Action failed:", e);
   } finally {
     btn.disabled = originalDisabled;
     btn.textContent = originalText;
@@ -590,7 +599,13 @@ function populateIdentitySelect(){
   sel.value = getIdentity();
   sel.onchange = async () => {
     setIdentity(sel.value);
-    if (sel.value) await ensureAttendee(sel.value);
+    if (sel.value) {
+      try {
+        await ensureAttendee(sel.value);
+      } catch (e) {
+        console.error("Ensure attendee failed:", e);
+      }
+    }
     renderMain();
   };
 }
@@ -621,10 +636,10 @@ async function renderMain(){
         <button class="btn" id="start-meeting-btn" style="margin-top:14px;">+ Start New Meeting</button>
       </div>`;
     const startBtn = document.getElementById('start-meeting-btn');
-    startBtn.onclick = () => requireAdmin(() => withBusy(startBtn, 'Starting…', async () => {
-      await startMeeting();
+    startBtn.onclick = () => requireAdmin(async () => {
+      await withBusy(startBtn, 'Starting…', () => startMeeting());
       renderMain();
-    }));
+    });
   } else if (meetingCache.status === 'open') {
     el.innerHTML = renderOpenMeeting(identity);
     attachOpenHandlers(identity);
@@ -726,7 +741,11 @@ function renderOpenMeeting(identity){
 function attachOpenHandlers(identity){
   document.querySelectorAll('[data-action="toggle-attendee"]').forEach(cb => {
     cb.addEventListener('change', async () => {
-      await toggleAttendee(cb.dataset.name);
+      try {
+        await toggleAttendee(cb.dataset.name);
+      } catch (e) {
+        console.error("Toggle attendee failed:", e);
+      }
       renderMain();
     });
   });
@@ -737,24 +756,22 @@ function attachOpenHandlers(identity){
     const praise = praiseEl.value.trim();
     const text = textEl.value.trim();
     if (!identity || !text) return;
-    await withBusy(submitBtn, 'Submitting…', async () => {
-      await addRequest(identity, praise, text);
+    await withBusy(submitBtn, 'Submitting…', () => addRequest(identity, praise, text));
+    renderMain();
+  });
+  const closeBtn = document.getElementById('close-meeting-btn');
+  if (closeBtn) closeBtn.addEventListener('click', () => requireAdmin(async () => {
+    await withBusy(closeBtn, 'Closing…', () => closeAndAssign());
+    renderMain();
+  }));
+  document.querySelectorAll('[data-action="remove-request"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await withBusy(btn, '…', () => removeRequest(btn.dataset.id));
       renderMain();
     });
   });
-  const closeBtn = document.getElementById('close-meeting-btn');
-  if (closeBtn) closeBtn.addEventListener('click', () => requireAdmin(() => withBusy(closeBtn, 'Closing…', async () => {
-    await closeAndAssign();
-    renderMain();
-  })));
-  document.querySelectorAll('[data-action="remove-request"]').forEach(btn => {
-    btn.addEventListener('click', () => withBusy(btn, '…', async () => {
-      await removeRequest(btn.dataset.id);
-      renderMain();
-    }));
-  });
   const outsiderBtn = document.getElementById('submit-outsider-btn');
-  if (outsiderBtn) outsiderBtn.addEventListener('click', () => withBusy(outsiderBtn, 'Adding…', async () => {
+  if (outsiderBtn) outsiderBtn.addEventListener('click', async () => {
     const nameEl = document.getElementById('outsider-name');
     const praiseEl = document.getElementById('outsider-praise');
     const textEl = document.getElementById('outsider-text');
@@ -762,9 +779,9 @@ function attachOpenHandlers(identity){
     const praise = praiseEl.value.trim();
     const text = textEl.value.trim();
     if (!name || !text) return;
-    await addRequest(name, praise, text);
+    await withBusy(outsiderBtn, 'Adding…', () => addRequest(name, praise, text));
     renderMain();
-  }));
+  });
 }
 
 function formatRequestLine(r, i){
@@ -834,10 +851,10 @@ function renderClosedMeeting(){
 
 function attachClosedHandlers(){
   const btn = document.getElementById('new-meeting-btn');
-  if (btn) btn.addEventListener('click', () => requireAdmin(() => withBusy(btn, 'Starting…', async () => {
-    await startMeeting();
+  if (btn) btn.addEventListener('click', () => requireAdmin(async () => {
+    await withBusy(btn, 'Starting…', () => startMeeting());
     renderMain();
-  })));
+  }));
 }
 
 /* ---------------- admin member management ---------------- */
@@ -873,10 +890,10 @@ function renderAdminMemberPanel(){
     document.getElementById('member-modal').classList.add('open');
   });
   document.querySelectorAll('[data-action="remove-member"]').forEach(btn => {
-    btn.addEventListener('click', () => withBusy(btn, '…', async () => {
-      await removeMember(btn.dataset.id);
+    btn.addEventListener('click', async () => {
+      await withBusy(btn, '…', () => removeMember(btn.dataset.id));
       renderMain();
-    }));
+    });
   });
 }
 
@@ -897,10 +914,8 @@ function requireAdmin(action){
 document.getElementById('admin-toggle-btn').addEventListener('click', async () => {
   const toggleBtn = document.getElementById('admin-toggle-btn');
   if (isAdminSession) {
-    await withBusy(toggleBtn, 'Signing out…', async () => {
-      await window._auth.signOut(auth);
-      renderMain();
-    });
+    await withBusy(toggleBtn, 'Signing out…', () => window._auth.signOut(auth));
+    renderMain();
     return;
   }
   requireAdmin(() => { renderMain(); });

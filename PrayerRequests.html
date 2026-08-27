@@ -493,6 +493,17 @@ async function addRequest(name, praise, text){
   });
 }
 
+// Admin-only. Only allowed while the meeting is still open — once closed,
+// assignments have already been built from the request list and removing
+// one after the fact would leave a dangling reference.
+async function removeRequest(id){
+  await mutateMeeting(m => {
+    if (!m || m.status !== 'open') return null;
+    const requests = (m.requests || []).filter(r => r.id !== id);
+    return { ...m, requests };
+  });
+}
+
 function shuffle(arr){
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -645,6 +656,7 @@ function renderOpenMeeting(identity){
           <div class="req-name">${escapeHtml(r.name)}</div>
           ${r.praise ? `<div class="req-text"><strong>Praise:</strong> ${escapeHtml(r.praise)}</div>` : ''}
           <div class="req-text">${escapeHtml(r.text)}</div>
+          ${isAdminSession ? `<button class="btn ghost small" data-action="remove-request" data-id="${r.id}" style="margin-top:8px;">Remove request</button>` : ''}
         </div>`).join('')
     : `<div class="no-req">No requests submitted yet.</div>`;
 
@@ -657,8 +669,32 @@ function renderOpenMeeting(identity){
       <div class="attendee-grid">${chips}</div>
     </div>` : '';
 
+  const adminOutsiderCard = isAdminSession ? `
+    <div class="card">
+      <div class="section-head" style="margin-top:0;">
+        <h2>Add request for someone outside the group</h2>
+      </div>
+      <p class="no-req" style="margin:0 0 10px;">They won't appear in "Who's here" or receive a WhatsApp assignment — this is just their request, recorded under their name.</p>
+      <div class="req-form">
+        <div class="field">
+          <label for="outsider-name">Their name</label>
+          <input type="text" id="outsider-name" placeholder="Full name">
+        </div>
+        <div class="field">
+          <label for="outsider-praise">Praise <span style="opacity:.6;font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label>
+          <textarea id="outsider-praise" rows="2" placeholder="Anything to give thanks for?"></textarea>
+        </div>
+        <div class="field">
+          <label for="outsider-text">Prayer request</label>
+          <textarea id="outsider-text" rows="3" placeholder="What would you like the group to pray for?"></textarea>
+        </div>
+        <button class="btn" id="submit-outsider-btn">Add Request</button>
+      </div>
+    </div>` : '';
+
   return `
     ${adminAttendeeCard}
+    ${adminOutsiderCard}
     <div class="card">
       <div class="section-head" style="margin-top:0;">
         <h2>Submit a request</h2>
@@ -711,6 +747,24 @@ function attachOpenHandlers(identity){
     await closeAndAssign();
     renderMain();
   })));
+  document.querySelectorAll('[data-action="remove-request"]').forEach(btn => {
+    btn.addEventListener('click', () => withBusy(btn, '…', async () => {
+      await removeRequest(btn.dataset.id);
+      renderMain();
+    }));
+  });
+  const outsiderBtn = document.getElementById('submit-outsider-btn');
+  if (outsiderBtn) outsiderBtn.addEventListener('click', () => withBusy(outsiderBtn, 'Adding…', async () => {
+    const nameEl = document.getElementById('outsider-name');
+    const praiseEl = document.getElementById('outsider-praise');
+    const textEl = document.getElementById('outsider-text');
+    const name = nameEl.value.trim();
+    const praise = praiseEl.value.trim();
+    const text = textEl.value.trim();
+    if (!name || !text) return;
+    await addRequest(name, praise, text);
+    renderMain();
+  }));
 }
 
 function formatRequestLine(r, i){

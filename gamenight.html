@@ -328,6 +328,10 @@
 </div>
 
 <script type="module">
+import { initFirebase, ensureAnonymousAuth } from './shared/firebase.js';
+import { withBusy, escapeHtml } from './shared/ui.js';
+import { mutateDocTransactional } from './shared/firestore-tx.js';
+
 /* Reuses the same Firebase project as /boardgames — new collection, same setup. */
 const firebaseConfig = {
   apiKey: "AIzaSyBDkeQkUkHe05Pdc9s9zzMiL5b8d70K4Ck",
@@ -352,27 +356,17 @@ let isAdminSession = false;
 
 async function initStorage(){
   try {
-    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
-    const firestore = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-    const authMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-    const app = initializeApp(firebaseConfig);
-    db = firestore.getFirestore(app);
+    const { db: liveDb, auth: liveAuth, firestore, authMod } = await initFirebase(firebaseConfig);
+    db = liveDb;
     window._fs = firestore;
-    auth = authMod.getAuth(app);
+    auth = liveAuth;
     window._auth = authMod;
     demoMode = false;
 
-    await new Promise((resolve) => {
-      const unsub = authMod.onAuthStateChanged(auth, (user) => {
-        isAdminSession = !!(user && !user.isAnonymous);
-        updateAdminBadge();
-        unsub();
-        resolve();
-      });
-    });
-    if (!auth.currentUser) {
-      await authMod.signInAnonymously(auth);
-    }
+    const firstUser = await ensureAnonymousAuth(auth, authMod);
+    isAdminSession = !!(firstUser && !firstUser.isAnonymous);
+    updateAdminBadge();
+
     authMod.onAuthStateChanged(auth, (user) => {
       isAdminSession = !!(user && !user.isAnonymous);
       updateAdminBadge();
@@ -495,14 +489,14 @@ async function setRsvp(eventId, playerName, status){
 
 async function mutateSuggestions(eventId, mutateFn){
   if (!demoMode && db) {
-    const { doc, runTransaction } = window._fs;
+    const { doc } = window._fs;
     const ref = doc(db, COLLECTION, eventId);
-    await runTransaction(db, async (tx) => {
-      const snap = await tx.get(ref);
-      if (!snap.exists()) return;
-      const data = snap.data();
-      const suggestions = mutateFn(data.suggestions || []);
-      tx.update(ref, { suggestions });
+    await mutateDocTransactional(db, window._fs, ref, (current) => {
+      if (!current) return null;
+      const suggestions = mutateFn(current.suggestions || []);
+      return { ...current, suggestions };
+    }, {
+      onCommitted: (committed) => { if (eventsCache[eventId]) eventsCache[eventId] = committed; }
     });
   } else {
     const all = localGetAll();
@@ -536,14 +530,14 @@ async function toggleVote(eventId, suggId, playerName){
 
 async function setGamesPlayed(eventId, mutateFn){
   if (!demoMode && db) {
-    const { doc, runTransaction } = window._fs;
+    const { doc } = window._fs;
     const ref = doc(db, COLLECTION, eventId);
-    await runTransaction(db, async (tx) => {
-      const snap = await tx.get(ref);
-      if (!snap.exists()) return;
-      const data = snap.data();
-      const list = mutateFn(data.gamesPlayed || []);
-      tx.update(ref, { gamesPlayed: list });
+    await mutateDocTransactional(db, window._fs, ref, (current) => {
+      if (!current) return null;
+      const list = mutateFn(current.gamesPlayed || []);
+      return { ...current, gamesPlayed: list };
+    }, {
+      onCommitted: (committed) => { if (eventsCache[eventId]) eventsCache[eventId] = committed; }
     });
   } else {
     const all = localGetAll();
@@ -610,10 +604,6 @@ function formatTime(timeStr){
   const period = h >= 12 ? 'PM' : 'AM';
   const h12 = ((h % 12) || 12);
   return `${h12}:${String(min).padStart(2,'0')} ${period}`;
-}
-
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 let eventsCache = {};
@@ -705,26 +695,29 @@ async function renderAdminPlayerPanel(){
 
   const seedBtn = document.getElementById('seed-players-btn');
   if (seedBtn) seedBtn.addEventListener('click', async () => {
-    seedBtn.disabled = true; seedBtn.textContent = 'Seeding…';
-    await seedPlayers();
+    await withBusy(seedBtn, 'Seeding…', () => seedPlayers());
     await populateIdentitySelect();
     renderAll();
   });
   document.getElementById('add-player-btn').addEventListener('click', async () => {
     const name = prompt('Player name:');
     if (name && name.trim()) {
-      await addPlayer(name.trim());
+      try {
+        await addPlayer(name.trim());
+      } catch (e) {
+        console.error("Add player failed:", e);
+      }
       await populateIdentitySelect();
       renderAll();
     }
   });
   el.querySelectorAll('[data-remove-player]').forEach(btn => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', () => withBusy(btn, '…', async () => {
       if (!confirm(`Remove "${players[btn.dataset.removePlayer].name}" from the player list?`)) return;
       await removePlayer(btn.dataset.removePlayer);
       await populateIdentitySelect();
       renderAll();
-    });
+    }));
   });
 }
 
@@ -869,7 +862,7 @@ function attachEventHandlers(){
     btn.addEventListener('click', async () => {
       const identity = getIdentity();
       if (!identity) return;
-      await setRsvp(btn.dataset.event, identity, btn.dataset.status);
+      await withBusy(btn, '…', () => setRsvp(btn.dataset.event, identity, btn.dataset.status));
       renderAll();
     });
   });
@@ -877,7 +870,11 @@ function attachEventHandlers(){
     btn.addEventListener('click', async () => {
       const identity = getIdentity();
       if (!identity) return;
-      await toggleVote(btn.dataset.event, btn.dataset.sugg, identity);
+      try {
+        await toggleVote(btn.dataset.event, btn.dataset.sugg, identity);
+      } catch (e) {
+        console.error("Toggle vote failed:", e);
+      }
       renderAll();
     });
   });
@@ -888,14 +885,18 @@ function attachEventHandlers(){
       const input = document.getElementById(`sugg-input-${btn.dataset.event}`);
       const val = input.value.trim();
       if (!val) return;
-      await addSuggestion(btn.dataset.event, val, identity);
+      await withBusy(btn, '…', () => addSuggestion(btn.dataset.event, val, identity));
       renderAll();
     });
   });
   document.querySelectorAll('[data-action="toggle-played"]').forEach(cb => {
     cb.addEventListener('change', async () => {
-      await toggleGamePlayed(cb.dataset.event, cb.dataset.game);
-      if (cb.checked) await maybeOfferAddToMaster(cb.dataset.game);
+      try {
+        await toggleGamePlayed(cb.dataset.event, cb.dataset.game);
+        if (cb.checked) await maybeOfferAddToMaster(cb.dataset.game);
+      } catch (e) {
+        console.error("Toggle game played failed:", e);
+      }
       renderAll();
     });
   });
@@ -904,8 +905,10 @@ function attachEventHandlers(){
       const input = document.getElementById(`played-input-${btn.dataset.event}`);
       const val = input.value.trim();
       if (!val) return;
-      await addGamePlayed(btn.dataset.event, val);
-      await maybeOfferAddToMaster(val);
+      await withBusy(btn, 'Adding…', async () => {
+        await addGamePlayed(btn.dataset.event, val);
+        await maybeOfferAddToMaster(val);
+      });
       renderAll();
     });
   });
@@ -935,8 +938,9 @@ function openNewEventModal(){
 document.getElementById('new-event-btn').addEventListener('click', () => requireAdmin(openNewEventModal));
 
 document.getElementById('admin-toggle-btn').addEventListener('click', async () => {
+  const toggleBtn = document.getElementById('admin-toggle-btn');
   if (isAdminSession) {
-    await window._auth.signOut(auth);
+    await withBusy(toggleBtn, 'Signing out…', () => window._auth.signOut(auth));
     renderAll();
     return;
   }
@@ -972,7 +976,8 @@ document.getElementById('event-submit').addEventListener('click', async () => {
     document.getElementById('event-error').style.display = 'block';
     return;
   }
-  await createEvent({ title, date, time, location, notes });
+  const submitBtn = document.getElementById('event-submit');
+  await withBusy(submitBtn, 'Creating…', () => createEvent({ title, date, time, location, notes }));
   eventModal.classList.remove('open');
   renderAll();
 });

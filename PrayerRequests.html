@@ -235,6 +235,10 @@
 </div>
 
 <script type="module">
+import { initFirebase, ensureAnonymousAuth } from './shared/firebase.js';
+import { withBusy, escapeHtml } from './shared/ui.js';
+import { mutateDocTransactional } from './shared/firestore-tx.js';
+
 /* Reuses the same Firebase project as /boardgames and /gamenight. */
 const firebaseConfig = {
   apiKey: "AIzaSyBDkeQkUkHe05Pdc9s9zzMiL5b8d70K4Ck",
@@ -265,29 +269,17 @@ let unsubPrivateMembers = null;
 /* ---------------- Firebase + auth boot ---------------- */
 async function initStorage(){
   try {
-    const [{ initializeApp }, firestore, authMod] = await Promise.all([
-      import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),
-      import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"),
-      import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js")
-    ]);
-    const app = initializeApp(firebaseConfig);
-    db = firestore.getFirestore(app);
+    const { db: liveDb, auth: liveAuth, firestore, authMod } = await initFirebase(firebaseConfig);
+    db = liveDb;
     window._fs = firestore;
-    auth = authMod.getAuth(app);
+    auth = liveAuth;
     window._auth = authMod;
     demoMode = false;
 
-    await new Promise((resolve) => {
-      const unsub = authMod.onAuthStateChanged(auth, (user) => {
-        isAdminSession = !!(user && !user.isAnonymous);
-        updateAdminBadge();
-        unsub();
-        resolve();
-      });
-    });
-    if (!auth.currentUser) {
-      await authMod.signInAnonymously(auth);
-    }
+    const firstUser = await ensureAnonymousAuth(auth, authMod);
+    isAdminSession = !!(firstUser && !firstUser.isAnonymous);
+    updateAdminBadge();
+
     authMod.onAuthStateChanged(auth, (user) => {
       isAdminSession = !!(user && !user.isAnonymous);
       updateAdminBadge();
@@ -451,22 +443,16 @@ async function startMeeting(){
 // mutateFn returns the full new doc to write, or a falsy value to skip writing.
 async function mutateMeeting(mutateFn){
   if (!demoMode && db) {
-    const { doc, runTransaction } = window._fs;
+    const { doc } = window._fs;
     const ref = doc(db, MEETING_COLLECTION, MEETING_DOC);
-    let committed = null;
-    await runTransaction(db, async (tx) => {
-      const snap = await tx.get(ref);
-      const current = snap.exists() ? snap.data() : null;
-      const updated = mutateFn(current);
-      committed = updated;
-      if (updated) tx.set(ref, updated);
+    // Echoing the committed result straight into meetingCache (via onCommitted) instead of
+    // waiting on the onSnapshot listener to deliver it — the listener has no ordering
+    // guarantee relative to this function returning, so a renderMain() called right after
+    // this could otherwise draw from a stale cache and visibly revert whatever the user
+    // just did. The listener will confirm the same data moments later either way.
+    await mutateDocTransactional(db, window._fs, ref, mutateFn, {
+      onCommitted: (committed) => { meetingCache = committed; }
     });
-    // Echo the just-committed result straight into the cache instead of waiting on the
-    // onSnapshot listener to deliver it. The listener has no ordering guarantee relative
-    // to this function returning, so a renderMain() called right after this could otherwise
-    // draw from a stale meetingCache and visibly revert whatever the user just did — the
-    // listener will confirm the same data moments later, so this doesn't cause a mismatch.
-    if (committed) meetingCache = committed;
   } else {
     const current = await getMeeting();
     const updated = mutateFn(current);
@@ -551,38 +537,6 @@ async function closeAndAssign(){
 const IDENTITY_KEY = 'prayer_identity';
 function getIdentity(){ return localStorage.getItem(IDENTITY_KEY) || ""; }
 function setIdentity(name){ localStorage.setItem(IDENTITY_KEY, name); }
-
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-// Disables a button and swaps its label immediately on click, so a tap always
-// gives instant feedback and can't be double-fired while the action is in flight.
-// Most buttons get torn down by the next renderMain() anyway (the listener-driven
-// re-render replaces the whole card), but this still guards slower paths and
-// demo mode, where there's no listener to redraw things for you.
-async function withBusy(btn, busyText, action){
-  if (!btn) {
-    try { await action(); } catch (e) { console.error("Action failed:", e); }
-    return;
-  }
-  const originalText = btn.textContent;
-  const originalDisabled = btn.disabled;
-  btn.disabled = true;
-  btn.textContent = busyText;
-  try {
-    await action();
-  } catch (e) {
-    // Swallow here rather than let it propagate as an unhandled rejection —
-    // an error partway through a write must never silently stop the caller's
-    // follow-up renderMain() from running (that's what caused requests/attendance
-    // to appear stuck until a manual page refresh).
-    console.error("Action failed:", e);
-  } finally {
-    btn.disabled = originalDisabled;
-    btn.textContent = originalText;
-  }
-}
 
 /* ---------------- rendering ---------------- */
 let publicMembersCache = {};  // id -> {name}

@@ -249,6 +249,10 @@
 </div>
 
 <script type="module">
+import { initFirebase, ensureAnonymousAuth } from './shared/firebase.js';
+import { withBusy, escapeHtml } from './shared/ui.js';
+import { mutateDocTransactional } from './shared/firestore-tx.js';
+
 const firebaseConfig = {
   apiKey: "AIzaSyBDkeQkUkHe05Pdc9s9zzMiL5b8d70K4Ck",
   authDomain: "boardgameranking-72257.firebaseapp.com",
@@ -270,9 +274,6 @@ const SEED_PLAYERS = ["Aaron Le","Alicia Tran","Amy Donald","Angela Duong","Anna
 function slugify(name){
   return name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
 }
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
 
 let db = null;
 let auth = null;
@@ -281,27 +282,17 @@ let isAdminSession = false;
 
 async function initStorage(){
   try {
-    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
-    const firestore = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-    const authMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-    const app = initializeApp(firebaseConfig);
-    db = firestore.getFirestore(app);
+    const { db: liveDb, auth: liveAuth, firestore, authMod } = await initFirebase(firebaseConfig);
+    db = liveDb;
     window._fs = firestore;
-    auth = authMod.getAuth(app);
+    auth = liveAuth;
     window._auth = authMod;
     demoMode = false;
 
-    await new Promise((resolve) => {
-      const unsub = authMod.onAuthStateChanged(auth, (user) => {
-        isAdminSession = !!(user && !user.isAnonymous);
-        updateAdminBadge();
-        unsub();
-        resolve();
-      });
-    });
-    if (!auth.currentUser) {
-      await authMod.signInAnonymously(auth);
-    }
+    const firstUser = await ensureAnonymousAuth(auth, authMod);
+    isAdminSession = !!(firstUser && !firstUser.isAnonymous);
+    updateAdminBadge();
+
     authMod.onAuthStateChanged(auth, (user) => {
       isAdminSession = !!(user && !user.isAnonymous);
       updateAdminBadge();
@@ -429,12 +420,20 @@ async function seedGames(){
 async function removeGame(id){
   const rankings = await getAllRankings();
   if (!demoMode && db) {
-    const { doc, deleteDoc, setDoc } = window._fs;
+    const { doc, deleteDoc } = window._fs;
     await deleteDoc(doc(db, GAMES_COLLECTION, id));
     for (const uid of Object.keys(rankings)) {
       const u = rankings[uid];
       if ((u.order || []).includes(id)) {
-        await setDoc(doc(db, RANKINGS_COLLECTION, uid), { name: u.name, order: u.order.filter(g => g !== id) });
+        const ref = doc(db, RANKINGS_COLLECTION, uid);
+        // Transactional rather than a plain setDoc from the earlier bulk read above —
+        // that read could be stale by the time this loop reaches a given user (they
+        // may have saved their own reorder in the meantime), so each doc is re-read
+        // fresh and mutated atomically here instead of overwritten from the stale copy.
+        await mutateDocTransactional(db, window._fs, ref, (current) => {
+          if (!current) return null;
+          return { ...current, order: (current.order || []).filter(g => g !== id) };
+        });
       }
     }
   } else {
@@ -589,7 +588,11 @@ async function renderMyList(){
       else if (action === 'remove') { newOrder.splice(idx, 1); }
       else if (action === 'add') { newOrder.push(gid); }
       else { return; }
-      await saveUserOrder(userId, identity, newOrder);
+      try {
+        await saveUserOrder(userId, identity, newOrder);
+      } catch (e) {
+        console.error("Save order failed:", e);
+      }
       renderMyList();
     });
   });
@@ -605,7 +608,11 @@ async function renderMyList(){
       if (target === idx) { renderMyList(); return; }
       newOrder.splice(idx, 1);
       newOrder.splice(target, 0, gid);
-      await saveUserOrder(userId, identity, newOrder);
+      try {
+        await saveUserOrder(userId, identity, newOrder);
+      } catch (e) {
+        console.error("Save order failed:", e);
+      }
       renderMyList();
     };
     input.addEventListener('change', commit);
@@ -726,23 +733,26 @@ Wingspan | https://cf.geekdo-images.com/.../wingspan.jpg"></textarea>
 
   const seedBtn = document.getElementById('seed-btn');
   if (seedBtn) seedBtn.addEventListener('click', async () => {
-    seedBtn.disabled = true; seedBtn.textContent = 'Seeding…';
-    await seedGames();
+    await withBusy(seedBtn, 'Seeding…', () => seedGames());
     renderCurrentView();
   });
   document.getElementById('add-game-btn').addEventListener('click', async () => {
     const name = prompt('Game name:');
     if (name && name.trim()) {
-      await addGame(name.trim());
+      try {
+        await addGame(name.trim());
+      } catch (e) {
+        console.error("Add game failed:", e);
+      }
       renderCurrentView();
     }
   });
   el.querySelectorAll('[data-remove-game]').forEach(btn => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', () => withBusy(btn, '…', async () => {
       if (!confirm(`Remove "${games[btn.dataset.removeGame].name}" from every list?`)) return;
       await removeGame(btn.dataset.removeGame);
       renderCurrentView();
-    });
+    }));
   });
   el.querySelectorAll('[data-edit-url]').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -750,7 +760,11 @@ Wingspan | https://cf.geekdo-images.com/.../wingspan.jpg"></textarea>
       const current = games[id].url || '';
       const url = prompt(`Box art URL for "${games[id].name}":`, current);
       if (url === null) return; // cancelled
-      await setGameUrl(id, url.trim());
+      try {
+        await setGameUrl(id, url.trim());
+      } catch (e) {
+        console.error("Set game URL failed:", e);
+      }
       renderCurrentView();
     });
   });
@@ -769,36 +783,40 @@ Wingspan | https://cf.geekdo-images.com/.../wingspan.jpg"></textarea>
       resultEl.textContent = 'Nothing to import — check the format.';
       return;
     }
-    btn.disabled = true; btn.textContent = 'Importing…';
-    const { updated, unmatched } = await bulkImportUrls(pairs);
-    btn.disabled = false; btn.textContent = 'Import';
-    resultEl.textContent = `Updated ${updated.length}.` + (unmatched.length ? ` Not matched: ${unmatched.join(', ')}` : '');
-    if (updated.length) document.getElementById('url-import-textarea').value = '';
+    let result = { updated: [], unmatched: [] };
+    await withBusy(btn, 'Importing…', async () => {
+      result = await bulkImportUrls(pairs);
+    });
+    resultEl.textContent = `Updated ${result.updated.length}.` + (result.unmatched.length ? ` Not matched: ${result.unmatched.join(', ')}` : '');
+    if (result.updated.length) document.getElementById('url-import-textarea').value = '';
     renderCurrentView();
   });
 
   const seedPlayersBtn = document.getElementById('seed-players-btn');
   if (seedPlayersBtn) seedPlayersBtn.addEventListener('click', async () => {
-    seedPlayersBtn.disabled = true; seedPlayersBtn.textContent = 'Seeding…';
-    await seedPlayers();
+    await withBusy(seedPlayersBtn, 'Seeding…', () => seedPlayers());
     await populateIdentitySelect();
     renderCurrentView();
   });
   document.getElementById('add-player-btn').addEventListener('click', async () => {
     const name = prompt('Player name:');
     if (name && name.trim()) {
-      await addPlayer(name.trim());
+      try {
+        await addPlayer(name.trim());
+      } catch (e) {
+        console.error("Add player failed:", e);
+      }
       await populateIdentitySelect();
       renderCurrentView();
     }
   });
   el.querySelectorAll('[data-remove-player]').forEach(btn => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', () => withBusy(btn, '…', async () => {
       if (!confirm(`Remove "${players[btn.dataset.removePlayer].name}" from the player list?`)) return;
       await removePlayer(btn.dataset.removePlayer);
       await populateIdentitySelect();
       renderCurrentView();
-    });
+    }));
   });
 }
 
@@ -825,8 +843,9 @@ function renderCurrentView(){
 /* ---------------- admin sign-in ---------------- */
 const adminModal = document.getElementById('admin-modal');
 document.getElementById('admin-toggle-btn').addEventListener('click', async () => {
+  const toggleBtn = document.getElementById('admin-toggle-btn');
   if (isAdminSession) {
-    await window._auth.signOut(auth);
+    await withBusy(toggleBtn, 'Signing out…', () => window._auth.signOut(auth));
     renderCurrentView();
     return;
   }

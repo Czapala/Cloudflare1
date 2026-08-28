@@ -941,6 +941,7 @@ document.getElementById('admin-toggle-btn').addEventListener('click', async () =
   const toggleBtn = document.getElementById('admin-toggle-btn');
   if (isAdminSession) {
     await withBusy(toggleBtn, 'Signing out…', () => window._auth.signOut(auth));
+    updateAdminBadge();
     renderAll();
     return;
   }
